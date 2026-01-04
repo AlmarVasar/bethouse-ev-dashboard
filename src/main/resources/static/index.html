@@ -14,12 +14,13 @@
             min-height:100vh;
         }
         .card {
-            width:460px;
+            width:420px;
             background:#161922;
             padding:24px;
             border-radius:16px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.5);
         }
-        h2 { font-size:15px; margin:16px 0 10px; color:#9aa0b4; }
+        h2 { font-size:18px; margin:16px 0 10px; color:#9aa0b4; text-align:center;}
         label { font-size:12px; color:#9aa0b4; display:block; margin-top:12px; }
         input, select {
             width:100%;
@@ -28,6 +29,13 @@
             border:1px solid #2a2e3a;
             background:#0f1116;
             color:#fff;
+            font-size:14px;
+            -moz-appearance: textfield;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
         input.error { border-color:#f87171; color:#f87171; }
         button {
@@ -36,117 +44,145 @@
             padding:12px;
             border-radius:12px;
             border:none;
-            background:#5c7cfa;
+            background:linear-gradient(135deg, #5c7cfa, #4dabf7);
             color:#fff;
             font-weight:600;
+            font-size:14px;
             cursor:pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow:0 10px 30px rgba(92,124,250,0.4);
         }
         .result {
             margin-top:20px;
             padding:16px;
             border-radius:12px;
             background:#0f1116;
+            border:1px solid #2a2e3a;
             display:none;
         }
         .row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
-        .positive { color:#4ade80; }
-        .negative { color:#f87171; }
+        .positive { color:#4ade80; font-weight:600; }
+        .negative { color:#f87171; font-weight:600; }
+        .muted { color:#8b90a0; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Fair Odds Calculator (NO-VIG)</h2>
+    <h2>BetHouse EV Engine</h2>
 
     <label>Sharp Over Odds</label>
     <input id="sharpOver" type="number" step="0.01" placeholder="Enter number">
+
     <label>Sharp Under Odds</label>
     <input id="sharpUnder" type="number" step="0.01" placeholder="Enter number">
+
     <label>Soft Odds</label>
     <input id="softOdds" type="number" step="0.01" placeholder="Enter number">
-    <label>Bankroll</label>
-    <input id="fairBankroll" type="number" value="1000" placeholder="Enter number">
+
+    <label>Bankroll (€)</label>
+    <input id="bankroll" type="number" value="1000" placeholder="Enter number">
+
     <label>Market</label>
-    <select id="fairMarket">
-        <option value="FT">Full Time</option>
-        <option value="1H">1st Half</option>
+    <select id="market">
+        <option value="FULL_TIME">Full Time (90 min)</option>
+        <option value="FIRST_HALF">1st Half (45 min)</option>
     </select>
 
-    <button onclick="calculateNoVig()">Calculate Fair & EV</button>
+    <button onclick="calculateEV()">Calculate EV</button>
 
-    <div id="fairResult" class="result">
-        <div class="row"><span>FAIR RANGE</span><span id="f_range">-</span></div>
-        <div class="row"><span>EV</span><span id="f_ev">-</span></div>
-        <div class="row"><span>STAKE</span><span id="f_stake">-</span></div>
-        <div class="row"><span>DECISION</span><span id="f_decision">-</span></div>
+    <div id="result" class="result">
+        <div class="row"><span>FAIR RANGE</span><span id="fairRange">-</span></div>
+        <div class="row"><span>EV</span><span id="evPercent">-</span></div>
+        <div class="row"><span>STAKE</span><span id="stakeAmount">-</span></div>
+        <div class="row"><span>DECISION</span><span id="decisionText">-</span></div>
     </div>
 
 </div>
 
 <script>
-    function showPlaceholderError(input) {
+    const inputIds = ['sharpOver','sharpUnder','softOdds','bankroll'];
+
+    function showError(input) {
         input.value = '';
         input.placeholder = "Please enter a number";
         input.classList.add('error');
     }
-
-    function clearPlaceholder(input) {
+    function clearError(input) {
         input.classList.remove('error');
     }
 
-    ['sharpOver','sharpUnder','softOdds','fairBankroll'].forEach(id=>{
-        const inp=document.getElementById(id);
-        inp.addEventListener('focus', ()=>{ clearPlaceholder(inp); });
+    inputIds.forEach(id => {
+        document.getElementById(id).addEventListener('focus', function(){ clearError(this); });
     });
 
-    function calculateNoVig() {
-        const soInput = document.getElementById('sharpOver');
-        const suInput = document.getElementById('sharpUnder');
+    function calculateEV() {
+        const sharpOverInput = document.getElementById('sharpOver');
+        const sharpUnderInput = document.getElementById('sharpUnder');
         const softInput = document.getElementById('softOdds');
-        const bankrollInput = document.getElementById('fairBankroll');
-        const marketVal = document.getElementById('fairMarket').value;
+        const bankrollInput = document.getElementById('bankroll');
+        const marketInput = document.getElementById('market');
 
         let hasError = false;
-        [soInput,suInput,softInput,bankrollInput].forEach(inp=>{
-            if(inp.value.trim()==='' || isNaN(parseFloat(inp.value))){
-                showPlaceholderError(inp);
-                hasError=true;
+        [sharpOverInput, sharpUnderInput, softInput, bankrollInput].forEach(inp => {
+            if(inp.value.trim()==='' || isNaN(parseFloat(inp.value))) {
+                showError(inp);
+                hasError = true;
             }
         });
         if(hasError) return;
 
-        const so=parseFloat(soInput.value);
-        const su=parseFloat(suInput.value);
-        const soft=parseFloat(softInput.value);
-        const bankroll=parseFloat(bankrollInput.value);
+        const sharpOver = parseFloat(sharpOverInput.value);
+        const sharpUnder = parseFloat(sharpUnderInput.value);
+        const soft = parseFloat(softInput.value);
+        const bankroll = parseFloat(bankrollInput.value);
+        const market = marketInput.value;
 
-        // NO-VIG FAIR
-        const pOver=1/so, pUnder=1/su;
-        const vig=pOver+pUnder;
-        const fairOver=1/(pOver/vig), fairUnder=1/(pUnder/vig);
-        const fairLow=Math.min(fairOver,fairUnder);
-        const fairHigh=Math.max(fairOver,fairUnder);
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
 
-        const fairSelected=Math.abs(soft-fairOver)<Math.abs(soft-fairUnder)?fairOver:fairUnder;
+        // 1️⃣ NO-VIG FAIR
+        const pOver = 1 / sharpOver;
+        const pUnder = 1 / sharpUnder;
+        const vig = pOver + pUnder;
+        const fairOver = 1 / (pOver / vig);
+        const fairUnder = 1 / (pUnder / vig);
+        const fairLow = Math.min(fairOver, fairUnder);
+        const fairHigh = Math.max(fairOver, fairUnder);
 
-        const ev=(soft/fairSelected)-1;
+        const fairSelected = Math.abs(soft - fairOver) < Math.abs(soft - fairUnder) ? fairOver : fairUnder;
 
-        if((soft>fairSelected && ev<=0)||(soft<fairSelected && ev>=0)){
-            fairResult.style.display='block';
-            fairResult.innerHTML='<div class="negative">EV audit failed</div>';
+        // 2️⃣ EV calculation
+        const ev = (soft / fairSelected) - 1;
+
+        // 3️⃣ EV audit
+        if ((soft > fairSelected && ev <=0) || (soft < fairSelected && ev >=0)) {
+            resultDiv.innerHTML = '<div class="negative">EV audit failed</div>';
             return;
         }
 
-        const stake = ev>0 ? bankroll*(marketVal==='1H'?0.013:0.022):0;
-        const pos = ev>0;
+        // 4️⃣ EV-scaled stake with market factor
+        const marketFactor = market === 'FIRST_HALF' ? 0.5 : 1; // 1H = 45min → smaller stake
+        let stake = ev > 0 ? bankroll * ev * 0.3 * marketFactor : 0;
+        stake = Math.max(stake, bankroll * 0.003); // min 0.3%
 
-        fairResult.style.display='block';
-        f_range.textContent = `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
-        f_ev.textContent = (pos?'+':'')+(ev*100).toFixed(2)+'%';
-        f_ev.className = pos?'positive':'negative';
-        f_stake.textContent = '€'+stake.toFixed(2);
-        f_decision.textContent = pos?'BET APPROVED':'NO BET';
-        f_decision.className = pos?'positive':'negative';
+        // 5️⃣ Decision
+        const evPercent = (ev*100).toFixed(2);
+        const evPositive = ev >= 0.03; // EV >=3% to bet
+        const decisionText = evPositive ? 'BET APPROVED' : 'NO BET';
+
+        // 6️⃣ Output
+        document.getElementById('fairRange').textContent = `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
+        const evSpan = document.getElementById('evPercent');
+        evSpan.textContent = (ev>=0?'+':'')+evPercent+'%';
+        evSpan.className = evPositive ? 'positive':'negative';
+        document.getElementById('stakeAmount').textContent = '€'+stake.toFixed(2);
+        const decSpan = document.getElementById('decisionText');
+        decSpan.textContent = decisionText;
+        decSpan.className = evPositive ? 'positive':'negative';
     }
 </script>
 

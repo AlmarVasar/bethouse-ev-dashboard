@@ -119,14 +119,21 @@ public final class BetHouseEVEngine {
        ============================ */
 
     private static double calculateStake(double ev, double bankroll, MarketType type) {
+        if (ev <= 0) return 0.0;
 
-        double cap = type == MarketType.FULL_TIME ? 0.022 : 0.013;
+        // Stake is proportional to EV × 0.30
+        double rawStake = bankroll * ev * 0.30;
 
-        double rawStake = bankroll * ev;
-        double cappedStake = bankroll * cap;
+        // Apply min and max caps
+        double minStake = bankroll * 0.003; // 0.3%
+        double maxStake = bankroll * 0.022; // 2.2%
 
-        return Math.min(rawStake, cappedStake);
+        double stake = Math.max(rawStake, minStake);
+        stake = Math.min(stake, maxStake);
+
+        return stake;
     }
+
 
     /* ============================
        ======== AUDITS =============
