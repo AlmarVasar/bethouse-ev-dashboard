@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>BetHouse EV Engine</title>
+
     <style>
         body {
-            background:#0f1116;
+            background:radial-gradient(circle at top, #151924, #0f1116);
             color:#eaeaf0;
             font-family: Inter, system-ui, sans-serif;
             display:flex;
@@ -14,97 +15,108 @@
             min-height:100vh;
             padding:20px;
         }
+
         .card {
             width:420px;
-            background:#161922;
-            padding:24px;
-            border-radius:16px;
-            box-shadow:0 20px 60px rgba(0,0,0,0.5);
+            background:linear-gradient(180deg,#1a1f2e,#141824);
+            padding:26px;
+            border-radius:18px;
+            box-shadow:0 30px 80px rgba(0,0,0,0.6);
         }
+
         h2 {
             font-size:18px;
-            margin:16px 0 10px;
-            color:#9aa0b4;
+            margin-bottom:18px;
+            color:#b6bdd6;
             text-align:center;
         }
-        label { font-size:12px; color:#9aa0b4; display:block; margin-top:12px; }
+
+        label {
+            font-size:11px;
+            text-transform:uppercase;
+            color:#8f96b3;
+            display:block;
+            margin-top:14px;
+        }
+
         input, select {
             width:100%;
-            padding:10px 12px;
-            border-radius:10px;
-            border:1px solid #2a2e3a;
+            padding:11px 12px;
+            border-radius:12px;
+            border:1px solid #2a2f42;
             background:#0f1116;
             color:#fff;
             font-size:14px;
-            box-sizing:border-box; /* ensures exact same width */
+            box-sizing:border-box;
         }
 
-        /* White number arrows for webkit */
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: auto;
+            -webkit-appearance:auto;
             background:#161922;
             color:#fff;
-            border-radius:6px;
-            width: 20px;
-        }
-        /* Firefox white arrows */
-        input[type=number]::-moz-inner-spin-button,
-        input[type=number]::-moz-outer-spin-button {
-            -moz-appearance: auto;
-            background:#161922;
-            color:#fff;
-            border-radius:6px;
         }
 
-        input.error { border-color:#f87171; color:#f87171; }
+        input.error {
+            border-color:#f87171;
+            color:#f87171;
+        }
+
         button {
-            margin-top:18px;
+            margin-top:22px;
             width:100%;
-            padding:12px;
-            border-radius:12px;
+            padding:13px;
+            border-radius:14px;
             border:none;
-            background:linear-gradient(135deg, #5c7cfa, #4dabf7);
+            background:linear-gradient(135deg,#5c7cfa,#4dabf7);
             color:#fff;
             font-weight:600;
-            font-size:14px;
             cursor:pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow:0 10px 30px rgba(92,124,250,0.4);
-        }
+
         .result {
-            margin-top:20px;
-            padding:16px;
-            border-radius:12px;
+            margin-top:22px;
+            padding:18px;
+            border-radius:14px;
             background:#0f1116;
             border:1px solid #2a2e3a;
             display:none;
         }
-        .row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+
+        .row {
+            display:flex;
+            justify-content:space-between;
+            margin-bottom:10px;
+            font-size:13px;
+        }
+
         .positive { color:#4ade80; font-weight:600; }
         .negative { color:#f87171; font-weight:600; }
-        .muted { color:#8b90a0; }
+
+        .divider {
+            height:1px;
+            background:#24283a;
+            margin:12px 0;
+        }
     </style>
 </head>
+
 <body>
 
 <div class="card">
     <h2>BetHouse EV Engine</h2>
 
     <label>Sharp Over Odds</label>
-    <input id="sharpOver" type="number" step="0.01" placeholder="Enter number">
+    <input id="sharpOver" type="number" step="0.01">
 
     <label>Sharp Under Odds</label>
-    <input id="sharpUnder" type="number" step="0.01" placeholder="Enter number">
+    <input id="sharpUnder" type="number" step="0.01">
 
     <label>Soft Odds</label>
-    <input id="softOdds" type="number" step="0.01" placeholder="Enter number">
+    <input id="softOdds" type="number" step="0.01">
 
     <label>Bankroll (€)</label>
-    <input id="bankroll" type="number" value="1000" placeholder="Enter number">
+    <input id="bankroll" type="number" value="1000">
 
     <label>Market</label>
     <select id="market">
@@ -116,88 +128,72 @@
 
     <div id="result" class="result">
         <div class="row"><span>FAIR RANGE</span><span id="fairRange">-</span></div>
+        <div class="divider"></div>
         <div class="row"><span>EV</span><span id="evPercent">-</span></div>
-        <div class="row"><span>STAKE</span><span id="stakeAmount">-</span></div>
+        <div class="row" id="stakeRow"><span>STAKE</span><span id="stakeAmount"></span></div>
+        <div class="divider"></div>
         <div class="row"><span>DECISION</span><span id="decisionText">-</span></div>
     </div>
-
 </div>
 
 <script>
-    const inputIds = ['sharpOver','sharpUnder','softOdds','bankroll'];
-
-    function showError(input) {
-        input.value = '';
-        input.placeholder = "Please enter a number";
-        input.classList.add('error');
-    }
-    function clearError(input) {
-        input.classList.remove('error');
-    }
-
-    inputIds.forEach(id => {
-        document.getElementById(id).addEventListener('focus', function(){ clearError(this); });
-    });
-
     function calculateEV() {
-        const sharpOver = parseFloat(document.getElementById('sharpOver').value);
-        const sharpUnder = parseFloat(document.getElementById('sharpUnder').value);
-        const soft = parseFloat(document.getElementById('softOdds').value);
-        const bankroll = parseFloat(document.getElementById('bankroll').value);
+
+        const sharpOverInput = document.getElementById('sharpOver');
+        const sharpUnderInput = document.getElementById('sharpUnder');
+        const softInput = document.getElementById('softOdds');
+        const bankrollInput = document.getElementById('bankroll');
         const market = document.getElementById('market').value;
 
-        const inputs = [sharpOver, sharpUnder, soft, bankroll];
-        if(inputs.some(v => isNaN(v))) {
-            inputIds.forEach(id => {
-                const el = document.getElementById(id);
-                if(el.value.trim()==='' || isNaN(parseFloat(el.value))) showError(el);
-            });
-            return;
-        }
+        const sharpOver = parseFloat(sharpOverInput.value);
+        const sharpUnder = parseFloat(sharpUnderInput.value);
+        const soft = parseFloat(softInput.value);
+        const bankroll = parseFloat(bankrollInput.value);
 
-        // 1️⃣ NO-VIG FAIR
+        if ([sharpOver, sharpUnder, soft, bankroll].some(v => isNaN(v))) return;
+
+        // NO-VIG FAIR
         const pOver = 1 / sharpOver;
         const pUnder = 1 / sharpUnder;
         const vig = pOver + pUnder;
+
         const fairOver = 1 / (pOver / vig);
         const fairUnder = 1 / (pUnder / vig);
+
         const fairLow = Math.min(fairOver, fairUnder);
         const fairHigh = Math.max(fairOver, fairUnder);
 
-        const fairSelected = Math.abs(soft - fairOver) < Math.abs(soft - fairUnder) ? fairOver : fairUnder;
+        const fairSelected =
+            Math.abs(soft - fairOver) < Math.abs(soft - fairUnder)
+                ? fairOver
+                : fairUnder;
 
-        // 2️⃣ EV calculation
         const ev = (soft / fairSelected) - 1;
+        const evPct = ev * 100;
 
-        // 3️⃣ EV audit
-        if ((soft > fairSelected && ev <=0) || (soft < fairSelected && ev >=0)) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div class="negative">EV audit failed</div>';
-            return;
+        const evPositive = ev >= 0.03;
+
+        // STAKE (ONLY IF EV ≥ 3%)
+        const stakeRow = document.getElementById('stakeRow');
+        if (evPositive) {
+            const marketFactor = market === 'FIRST_HALF' ? 0.5 : 1;
+            let stake = bankroll * ev * 0.3 * marketFactor;
+            stake = Math.max(stake, bankroll * 0.003);
+            stakeRow.style.display = 'flex';
+            stakeAmount.textContent = '€' + stake.toFixed(2);
+        } else {
+            stakeRow.style.display = 'none';
         }
 
-        // 4️⃣ EV-scaled stake (min 0.3%)
-        const marketFactor = market === 'FIRST_HALF' ? 0.5 : 1; // 1H = 45min
-        let stake = ev > 0 ? bankroll * ev * 0.3 * marketFactor : 0;
-        stake = Math.max(stake, bankroll * 0.003); // min 0.3%
+        fairRange.textContent = `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
 
-        // 5️⃣ Decision
-        const evPercent = (ev*100).toFixed(2);
-        const evPositive = ev >= 0.03; // EV >=3% to bet
-        const decisionText = evPositive ? 'BET APPROVED' : 'NO BET';
+        evPercent.textContent = (ev >= 0 ? '+' : '') + evPct.toFixed(2) + '%';
+        evPercent.className = evPositive ? 'positive' : 'negative';
 
-        // 6️⃣ Output
-        document.getElementById('fairRange').textContent = `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
-        const evSpan = document.getElementById('evPercent');
-        evSpan.textContent = (ev>=0?'+':'')+evPercent+'%';
-        evSpan.className = evPositive ? 'positive':'negative';
-        document.getElementById('stakeAmount').textContent = '€'+stake.toFixed(2);
-        const decSpan = document.getElementById('decisionText');
-        decSpan.textContent = decisionText;
-        decSpan.className = evPositive ? 'positive':'negative';
+        decisionText.textContent = evPositive ? 'BET APPROVED' : 'NO BET';
+        decisionText.className = evPositive ? 'positive' : 'negative';
 
-        document.getElementById('result').style.display='block';
+        document.getElementById('result').style.display = 'block';
     }
 </script>
 
