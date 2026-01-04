@@ -8,8 +8,8 @@
         <version>4.0.1</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.bethouse</groupId>
-    <artifactId>engine</artifactId>
+    <groupId>com.bethouse.engine</groupId>
+    <artifactId>bethouse-engine</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>bethouse-engine</name>
     <description>bethouse-engine</description>
@@ -40,6 +40,13 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.5.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

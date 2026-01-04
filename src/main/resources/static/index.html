@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>BetHouse EV Calculator</title>
-
     <style>
         body {
             margin: 0;
@@ -18,7 +17,7 @@
 
         .card {
             background: #161922;
-            width: 400px;
+            width: 450px;
             padding: 30px;
             border-radius: 18px;
             box-shadow: 0 25px 60px rgba(0,0,0,0.5);
@@ -58,6 +57,11 @@
             border-color: #5c7cfa;
         }
 
+        input[type="file"] {
+            padding: 8px;
+            background: #0f1116;
+        }
+
         button {
             width: 100%;
             padding: 12px;
@@ -69,6 +73,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
+            margin-bottom: 12px;
         }
 
         button:hover {
@@ -118,6 +123,7 @@
     <h1>BetHouse EV Engine</h1>
     <div class="subtitle">Deterministic · Audit-Protected · Sharp-Driven</div>
 
+    <!-- Number input calculator -->
     <label>Sharp Price</label>
     <input id="sharp" type="number" step="0.01" placeholder="e.g. 1.95">
 
@@ -133,79 +139,120 @@
         <option value="FIRST_HALF">1st Half</option>
     </select>
 
-    <button onclick="calculate()">Calculate EV</button>
+    <button onclick="calculateManualEV()">Calculate EV (Manual)</button>
+
+    <hr style="border-color: #2a2e3a; margin: 20px 0;">
+
+    <!-- Photo upload calculator -->
+    <label>Sharp Odds Image</label>
+    <input type="file" id="sharpFile" accept="image/*">
+
+    <label>Soft Odds Image</label>
+    <input type="file" id="softFile" accept="image/*">
+
+    <button onclick="calculatePhotoEV()">Scan Images & Calculate EV</button>
 
     <div id="result" class="result"></div>
 </div>
 
 <script>
-    function calculate() {
-
+    // ================= Manual number input EV =================
+    async function calculateManualEV() {
         const resultBox = document.getElementById('result');
         resultBox.style.display = "block";
         resultBox.innerHTML = "<span class='muted'>Calculating…</span>";
 
-        fetch('/api/calculate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sharpPrice: parseFloat(document.getElementById('sharp').value),
-                softPrice: document.getElementById('soft').value
-                    ? parseFloat(document.getElementById('soft').value)
-                    : null,
-                bankroll: parseFloat(document.getElementById('bankroll').value),
-                marketType: document.getElementById('market').value
-            })
-        })
-            .then(async r => {
-                const data = await r.json();
-                if (!r.ok) throw data;
-                return data;
-            })
-            .then(data => {
-                const evPct = (data.ev * 100).toFixed(2);
-                const positive = data.ev > 0;
+        const sharpPrice = parseFloat(document.getElementById('sharp').value);
+        const softPrice = document.getElementById('soft').value ? parseFloat(document.getElementById('soft').value) : null;
+        const bankroll = parseFloat(document.getElementById('bankroll').value);
+        const marketType = document.getElementById('market').value;
 
-                resultBox.innerHTML = `
-            <h3>ANALYSIS RESULT</h3>
-
-            <div class="row">
-                <span class="muted">FAIR RANGE</span>
-                <span>${data.fair.low.toFixed(2)} – ${data.fair.high.toFixed(2)}</span>
-            </div>
-
-            <div class="row">
-                <span class="muted">EV</span>
-                <span class="${positive ? 'positive' : 'negative'}">
-                    ${positive ? '+' : ''}${evPct}%
-                </span>
-            </div>
-
-            <div class="row">
-                <span class="muted">STAKE</span>
-                <span>€${data.stake.toFixed(2)}</span>
-            </div>
-
-            <div class="row">
-                <span class="muted">AUDIT</span>
-                <span>${data.auditStatus}</span>
-            </div>
-
-            <div class="decision ${positive ? 'positive' : 'negative'}">
-                ${positive ? 'BET APPROVED' : 'NO BET'}
-            </div>
-        `;
-            })
-            .catch(err => {
-                resultBox.innerHTML = `
-            <h3>ANALYSIS STOPPED</h3>
-            <div class="negative">
-                ${err.message || 'Rule violation detected'}
-            </div>
-        `;
+        try {
+            const res = await fetch("/api/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sharpPrice, softPrice, bankroll, marketType })
             });
+
+            const data = await res.json();
+            displayResult(data);
+        } catch(err) {
+            showError(err);
+        }
+    }
+
+    // ================= Photo upload EV =================
+    async function calculatePhotoEV() {
+        const resultBox = document.getElementById('result');
+        resultBox.style.display = "block";
+        resultBox.innerHTML = "<span class='muted'>Scanning images…</span>";
+
+        const sharpFile = document.getElementById('sharpFile').files[0];
+        const softFile = document.getElementById('softFile').files[0];
+
+        if (!sharpFile || !softFile) {
+            resultBox.innerHTML = "<span class='negative'>Please upload both Sharp and Soft images!</span>";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("sharpFile", sharpFile);
+        formData.append("softFile", softFile);
+
+        try {
+            const res = await fetch("/api/scan-odds", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            displayResult(data);
+        } catch(err) {
+            showError(err);
+        }
+    }
+
+    // ================= Display EV Result =================
+    function displayResult(data) {
+        const resultBox = document.getElementById('result');
+        const evPct = (data.ev * 100).toFixed(2);
+        const positive = data.ev > 0;
+
+        resultBox.innerHTML = `
+        <h3>ANALYSIS RESULT</h3>
+
+        <div class="row">
+            <span class="muted">EV</span>
+            <span class="${positive ? 'positive' : 'negative'}">
+                ${positive ? '+' : ''}${evPct}%
+            </span>
+        </div>
+
+        <div class="row">
+            <span class="muted">STAKE</span>
+            <span>€${data.stake.toFixed(2)}</span>
+        </div>
+
+        <div class="row">
+            <span class="muted">AUDIT</span>
+            <span>${data.auditStatus}</span>
+        </div>
+
+        <div class="decision ${positive ? 'positive' : 'negative'}">
+            ${positive ? 'BET APPROVED' : 'NO BET'}
+        </div>
+    `;
+    }
+
+    // ================= Show Error =================
+    function showError(err) {
+        const resultBox = document.getElementById('result');
+        resultBox.innerHTML = `
+        <h3>ANALYSIS STOPPED</h3>
+        <div class="negative">
+            ${err.message || 'Rule violation detected'}
+        </div>
+    `;
     }
 </script>
-
 </body>
 </html>
