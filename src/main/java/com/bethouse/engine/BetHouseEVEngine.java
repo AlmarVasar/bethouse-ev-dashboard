@@ -16,7 +16,7 @@ public final class BetHouseEVEngine {
                 throw new HardFail("Invalid SHARP price");
 
         }
-        }
+    }
 
     public enum MarketType {
         FULL_TIME,
@@ -29,7 +29,7 @@ public final class BetHouseEVEngine {
                 throw new HardFail("Invalid FAIR range");
 
         }
-        }
+    }
 
     public record Result(FairRange fair, Double ev, boolean bet, double stake, String auditStatus) {
     }
