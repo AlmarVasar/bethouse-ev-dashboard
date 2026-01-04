@@ -12,6 +12,7 @@
             justify-content:center;
             align-items:center;
             min-height:100vh;
+            padding:20px;
         }
         .card {
             width:420px;
@@ -20,23 +21,42 @@
             border-radius:16px;
             box-shadow:0 20px 60px rgba(0,0,0,0.5);
         }
-        h2 { font-size:18px; margin:16px 0 10px; color:#9aa0b4; text-align:center;}
+        h2 {
+            font-size:18px;
+            margin:16px 0 10px;
+            color:#9aa0b4;
+            text-align:center;
+        }
         label { font-size:12px; color:#9aa0b4; display:block; margin-top:12px; }
         input, select {
             width:100%;
-            padding:10px;
+            padding:10px 12px;
             border-radius:10px;
             border:1px solid #2a2e3a;
             background:#0f1116;
             color:#fff;
             font-size:14px;
-            -moz-appearance: textfield;
+            box-sizing:border-box; /* ensures exact same width */
         }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+
+        /* White number arrows for webkit */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: auto;
+            background:#161922;
+            color:#fff;
+            border-radius:6px;
+            width: 20px;
         }
+        /* Firefox white arrows */
+        input[type=number]::-moz-inner-spin-button,
+        input[type=number]::-moz-outer-spin-button {
+            -moz-appearance: auto;
+            background:#161922;
+            color:#fff;
+            border-radius:6px;
+        }
+
         input.error { border-color:#f87171; color:#f87171; }
         button {
             margin-top:18px;
@@ -120,29 +140,20 @@
     });
 
     function calculateEV() {
-        const sharpOverInput = document.getElementById('sharpOver');
-        const sharpUnderInput = document.getElementById('sharpUnder');
-        const softInput = document.getElementById('softOdds');
-        const bankrollInput = document.getElementById('bankroll');
-        const marketInput = document.getElementById('market');
+        const sharpOver = parseFloat(document.getElementById('sharpOver').value);
+        const sharpUnder = parseFloat(document.getElementById('sharpUnder').value);
+        const soft = parseFloat(document.getElementById('softOdds').value);
+        const bankroll = parseFloat(document.getElementById('bankroll').value);
+        const market = document.getElementById('market').value;
 
-        let hasError = false;
-        [sharpOverInput, sharpUnderInput, softInput, bankrollInput].forEach(inp => {
-            if(inp.value.trim()==='' || isNaN(parseFloat(inp.value))) {
-                showError(inp);
-                hasError = true;
-            }
-        });
-        if(hasError) return;
-
-        const sharpOver = parseFloat(sharpOverInput.value);
-        const sharpUnder = parseFloat(sharpUnderInput.value);
-        const soft = parseFloat(softInput.value);
-        const bankroll = parseFloat(bankrollInput.value);
-        const market = marketInput.value;
-
-        const resultDiv = document.getElementById('result');
-        resultDiv.style.display = 'block';
+        const inputs = [sharpOver, sharpUnder, soft, bankroll];
+        if(inputs.some(v => isNaN(v))) {
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                if(el.value.trim()==='' || isNaN(parseFloat(el.value))) showError(el);
+            });
+            return;
+        }
 
         // 1️⃣ NO-VIG FAIR
         const pOver = 1 / sharpOver;
@@ -160,12 +171,14 @@
 
         // 3️⃣ EV audit
         if ((soft > fairSelected && ev <=0) || (soft < fairSelected && ev >=0)) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
             resultDiv.innerHTML = '<div class="negative">EV audit failed</div>';
             return;
         }
 
-        // 4️⃣ EV-scaled stake with market factor
-        const marketFactor = market === 'FIRST_HALF' ? 0.5 : 1; // 1H = 45min → smaller stake
+        // 4️⃣ EV-scaled stake (min 0.3%)
+        const marketFactor = market === 'FIRST_HALF' ? 0.5 : 1; // 1H = 45min
         let stake = ev > 0 ? bankroll * ev * 0.3 * marketFactor : 0;
         stake = Math.max(stake, bankroll * 0.003); // min 0.3%
 
@@ -183,6 +196,8 @@
         const decSpan = document.getElementById('decisionText');
         decSpan.textContent = decisionText;
         decSpan.className = evPositive ? 'positive':'negative';
+
+        document.getElementById('result').style.display='block';
     }
 </script>
 
