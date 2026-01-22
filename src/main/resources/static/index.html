@@ -182,14 +182,17 @@
         const fairLow = Math.min(fairO, fairU);
         const fairHigh = Math.max(fairO, fairU);
 
-        const fairSel =
-            Math.abs(soft - fairO) < Math.abs(soft - fairU)
-                ? fairO
-                : fairU;
+        // decide side ONCE, independent of soft distance
+        const bettingOver = soft > fairO;
 
-        const ev = (soft / fairSel) - 1;
+// fair probability from sharp market
+        const fairProb = bettingOver ? (pO / vig) : (pU / vig);
+
+// correct EV formula
+        const ev = (soft * fairProb) - 1;
         const evPct = ev * 100;
         const positive = ev >= 0.02;
+
 
         document.getElementById('fairRange').textContent =
             `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
