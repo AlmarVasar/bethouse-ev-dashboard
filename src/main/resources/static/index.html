@@ -197,7 +197,7 @@
 
         .grid{ display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; }
 
-        /* ✅ Tip bubble color by outcome */
+        /* Tip bubble color by outcome */
         .tip-card{
             grid-column: span 4;
             padding:16px;
@@ -399,6 +399,60 @@
             padding-top:18px;
         }
 
+        /* ===== NEW TIP POPUP ===== */
+        .toast{
+            position:fixed;
+            right:18px;
+            bottom:18px;
+            width:min(360px, calc(100vw - 36px));
+            background:rgba(13,16,26,.85);
+            border:1px solid rgba(255,255,255,.10);
+            border-radius:18px;
+            box-shadow:0 30px 90px rgba(0,0,0,.70);
+            backdrop-filter: blur(10px);
+            transform: translateY(16px);
+            opacity:0;
+            pointer-events:none;
+            transition: .25s ease;
+            z-index:9999;
+        }
+        .toast.show{
+            opacity:1;
+            transform: translateY(0);
+            pointer-events:auto;
+        }
+        .toast-inner{
+            padding:16px;
+            display:grid;
+            gap:10px;
+            position:relative;
+        }
+        .toast-title{ font-weight:900; }
+        .toast-text{ color:var(--muted); font-size:14px; line-height:1.35; }
+        .toast-btn{
+            width:100%;
+            padding:12px 14px;
+            border-radius:14px;
+            border:none;
+            font-weight:900;
+            cursor:pointer;
+            background: linear-gradient(135deg,var(--blue),var(--cyan));
+            color:white;
+        }
+        .toast-close{
+            position:absolute;
+            top:10px;
+            right:10px;
+            width:30px;
+            height:30px;
+            border-radius:10px;
+            border:1px solid rgba(255,255,255,.10);
+            background: rgba(255,255,255,.06);
+            color:#e9ecf1;
+            cursor:pointer;
+        }
+        /* ========================= */
+
         @media (max-width: 980px){
             .hero-grid{ grid-template-columns: 1fr; }
             .tip-card{ grid-column: span 6; }
@@ -446,8 +500,9 @@
                 <div class="kicker"><span class="dot"></span> Newest tips first • Outcome bubbles</div>
                 <h1>Latest tips on top — clean and instantly readable.</h1>
                 <p class="sub">
-                    Tip bubbles are color-tinted by status: <b style="color:var(--green)">WIN</b>, <b style="color:var(--red)">LOST</b>,
-                    <b style="color:var(--yellow)">PENDING</b>. Performance still uses column G.
+                    Tip bubbles are color-tinted by status:
+                    <b style="color:var(--green)">WIN</b>, <b style="color:var(--red)">LOST</b>,
+                    <b style="color:var(--yellow)">PENDING</b>. Performance uses column G.
                 </p>
                 <div class="hero-cta">
                     <a class="btn primary" href="#tips">Browse Tips</a>
@@ -519,8 +574,9 @@
             <div class="calc-head">
                 <h2>Try the EV Calculator</h2>
                 <p>
-                    Enter sharp over/under odds to remove vig and estimate fair odds. If soft odds beat the fair line enough,
-                    the tool approves the bet and suggests a stake size (with an extra safety factor for 1st half markets).
+                    Enter sharp over/under odds to remove vig and estimate fair odds. Choose whether your soft odds are for
+                    Over or Under (so the tool doesn’t guess the side). If soft odds beat the fair line enough, the tool approves
+                    the bet and suggests a stake size (with an extra safety factor for 1st half markets).
                 </p>
             </div>
 
@@ -542,12 +598,19 @@
                         <input id="softOdds" type="number" step="0.01" placeholder="e.g. 2.05">
                     </div>
                     <div>
-                        <label for="bankroll">Bankroll (€)</label>
-                        <input id="bankroll" type="number" placeholder="e.g. 1000">
+                        <label for="softSide">Soft Side</label>
+                        <select id="softSide">
+                            <option value="OVER">Soft is OVER</option>
+                            <option value="UNDER">Soft is UNDER</option>
+                        </select>
                     </div>
                 </div>
 
                 <div class="field-row">
+                    <div>
+                        <label for="bankroll">Bankroll (€)</label>
+                        <input id="bankroll" type="number" placeholder="e.g. 1000">
+                    </div>
                     <div>
                         <label for="market">Market</label>
                         <select id="market">
@@ -555,10 +618,14 @@
                             <option value="FIRST_HALF">1st Half (45 min)</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="field-row">
                     <div>
                         <label>&nbsp;</label>
                         <button class="btn primary" style="width:100%" onclick="calculateEV()">Calculate EV</button>
                     </div>
+                    <div></div>
                 </div>
 
                 <div id="result" class="result">
@@ -595,6 +662,17 @@
         </div>
     </div>
 </div>
+
+<!-- ===== NEW TIP POPUP ===== -->
+<div id="newTipToast" class="toast" aria-live="polite" aria-atomic="true">
+    <div class="toast-inner">
+        <div class="toast-title">New tip published</div>
+        <div id="toastText" class="toast-text">A new pick is live. Tap to view.</div>
+        <button class="toast-btn" id="toastBtn">View newest</button>
+        <button class="toast-close" id="toastClose" aria-label="Close">✕</button>
+    </div>
+</div>
+<!-- ========================= -->
 
 <script>
     // =========================
@@ -692,7 +770,6 @@
     }
 
     function isPendingOutcome(outcome){
-        // "not settled yet" => anything empty/unknown/pending
         return !outcome || outcome === "pending" || outcome === "open" || outcome === "unsettled" || outcome === "tbd";
     }
 
@@ -723,7 +800,6 @@
         if (o === "win" || o === "won") return +abs;
         if (o === "lost" || o === "loss") return -abs;
         if (o === "refund" || o === "void" || o === "push") return 0;
-        // pending/unknown: treat as 0 impact for performance
         if (isPendingOutcome(o)) return 0;
         return n;
     }
@@ -739,7 +815,6 @@
         return String(stakeRaw).trim();
     }
 
-    // Profit display (column G) with + bold on wins, - on losses, pending => —
     function formatProfitForCard(profitRaw, outcomeRaw){
         const o = normalizeOutcome(outcomeRaw);
         if (isPendingOutcome(o)) return { text: "—", cls: "", bold:false };
@@ -769,7 +844,7 @@
 
     function getDisplayRows(rows){
         const q = (searchEl.value || "").trim();
-        if (q) return rows; // searching shows all matches
+        if (q) return rows;
         return expanded ? rows : rows.slice(0, DEFAULT_VISIBLE);
     }
 
@@ -801,7 +876,6 @@
             });
         }
 
-        // ✅ Newest first is default and enforced on initial load.
         if (sort === "NEWEST"){
             rows.sort((a,b) => new Date(b.date) - new Date(a.date));
         } else if (sort === "HIGHEST_ODDS"){
@@ -818,7 +892,6 @@
         }
 
         const displayRows = getDisplayRows(rows);
-
         tipsGrid.innerHTML = "";
 
         if (!rows.length){
@@ -867,7 +940,6 @@
     }
 
     function computeStatsAndChart(){
-        // chart must be chronological (oldest -> newest)
         const byDate = tips
             .filter(t => t.date && !isNaN(new Date(t.date).getTime()))
             .slice()
@@ -883,7 +955,7 @@
             else if (o === "lost" || o === "loss") losses++;
             else if (o === "refund" || o === "void" || o === "push") refunds++;
 
-            const signed = computeSignedProfit(t.profitRaw, t.outcome); // column G
+            const signed = computeSignedProfit(t.profitRaw, t.outcome);
             if (signed != null) total += signed;
             series.push(total);
         }
@@ -987,6 +1059,60 @@
         ctx.restore();
     }
 
+    // =========================
+    // NEW TIP POPUP LOGIC
+    // =========================
+    function showNewTipToast(message, onView) {
+        const toast = document.getElementById("newTipToast");
+        const toastText = document.getElementById("toastText");
+        const btn = document.getElementById("toastBtn");
+        const close = document.getElementById("toastClose");
+
+        toastText.textContent = message || "A new pick is live. Tap to view.";
+
+        btn.onclick = () => {
+            toast.classList.remove("show");
+            if (typeof onView === "function") onView();
+        };
+
+        close.onclick = () => toast.classList.remove("show");
+
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 10000);
+    }
+
+    function getNewestTip() {
+        if (!Array.isArray(tips) || tips.length === 0) return null;
+        const sorted = tips
+            .filter(t => t.date && !isNaN(new Date(t.date).getTime()))
+            .slice()
+            .sort((a,b) => new Date(b.date) - new Date(a.date));
+        return sorted[0] || null;
+    }
+
+    function checkForNewTipPopup() {
+        const newest = getNewestTip();
+        if (!newest) return;
+
+        const newestTime = new Date(newest.date).getTime();
+        if (!isFinite(newestTime)) return;
+
+        const key = "lastSeenTipTime";
+        const lastSeen = Number(localStorage.getItem(key));
+
+        if (!isFinite(lastSeen) || lastSeen <= 0) {
+            localStorage.setItem(key, String(newestTime));
+            return;
+        }
+
+        if (newestTime > lastSeen) {
+            showNewTipToast(`New tip: ${newest.game || "New match"} — tap to view`, () => {
+                document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
+                localStorage.setItem(key, String(newestTime));
+            });
+        }
+    }
+
     async function loadTipsFromSheet(){
         try{
             const res = await fetch(sheetUrl(), { cache: "no-store" });
@@ -1012,12 +1138,12 @@
                 };
             }).filter(t => t.game || t.tip);
 
-            // ✅ ensure newest-first at first view
             sortByEl.value = "NEWEST";
             expanded = false;
 
             renderTips();
             computeStatsAndChart();
+            checkForNewTipPopup();
         } catch (e){
             tipsGrid.innerHTML = `
           <div class="empty">
@@ -1042,28 +1168,34 @@
     searchEl.addEventListener("input", renderTips);
     sortByEl.addEventListener("change", renderTips);
 
-    // ====== EV calculator ======
+    // ====== EV calculator (FIXED: Soft Side selector) ======
     function calculateEV() {
         const sharpOver = parseFloat(document.getElementById('sharpOver').value);
         const sharpUnder = parseFloat(document.getElementById('sharpUnder').value);
         const soft = parseFloat(document.getElementById('softOdds').value);
         const bankroll = parseFloat(document.getElementById('bankroll').value);
         const market = document.getElementById('market').value;
+        const softSide = document.getElementById('softSide').value; // NEW
 
-        if ([sharpOver, sharpUnder, soft, bankroll].some(isNaN)) return;
+        if ([sharpOver, sharpUnder, soft, bankroll].some(Number.isNaN)) return;
+        if (sharpOver <= 1 || sharpUnder <= 1 || soft <= 1 || bankroll <= 0) return;
 
         const pO = 1 / sharpOver;
         const pU = 1 / sharpUnder;
         const vig = pO + pU;
 
-        const fairO = 1 / (pO / vig);
-        const fairU = 1 / (pU / vig);
+        const fairProbO = pO / vig;
+        const fairProbU = pU / vig;
+
+        const fairO = 1 / fairProbO;
+        const fairU = 1 / fairProbU;
 
         const fairLow = Math.min(fairO, fairU);
         const fairHigh = Math.max(fairO, fairU);
 
-        const bettingOver = soft > fairO;
-        const fairProb = bettingOver ? (pO / vig) : (pU / vig);
+        // ✅ FIX: do not guess by "soft > fairO". Use user selection.
+        const bettingOver = softSide === "OVER";
+        const fairProb = bettingOver ? fairProbO : fairProbU;
 
         const ev = (soft * fairProb) - 1;
         const evPct = ev * 100;
@@ -1087,7 +1219,9 @@
         }
 
         const decision = document.getElementById('decisionText');
-        decision.textContent = positive ? 'BET APPROVED' : 'NO BET';
+        decision.textContent = positive
+            ? `BET APPROVED (${bettingOver ? "OVER" : "UNDER"})`
+            : `NO BET (${bettingOver ? "OVER" : "UNDER"})`;
         decision.className = positive ? 'positive' : 'negative';
 
         document.getElementById('result').style.display = 'block';
@@ -1095,7 +1229,12 @@
     window.calculateEV = calculateEV;
 
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Initial load
     loadTipsFromSheet();
+
+    // Optional: auto-refresh tips (and popup) every 2 minutes
+    setInterval(loadTipsFromSheet, 2 * 60 * 1000);
 </script>
 </body>
 </html>
