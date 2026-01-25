@@ -73,6 +73,7 @@
             cursor:pointer;
             transition: transform .12s ease, border-color .12s ease, background .12s ease;
             user-select:none;
+            white-space:nowrap;
         }
         .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.05); }
         .btn.primary{ border:none; background: linear-gradient(135deg, var(--blue), var(--cyan)); box-shadow: 0 18px 55px rgba(92,124,250,.25); }
@@ -315,12 +316,26 @@
             100%{ transform: translateX(220%); }
         }
 
-        .show-more-wrap{
+        /* PAGINATION */
+        .pager-wrap{
             margin-top: 14px;
             display:flex;
             justify-content:center;
+            gap:10px;
+            flex-wrap:wrap;
+            align-items:center;
         }
-        .show-more-btn{ width:min(420px, 100%); }
+        .pager-btns{
+            display:flex;
+            gap:8px;
+            flex-wrap:wrap;
+            justify-content:center;
+            align-items:center;
+        }
+        .btn.page.active{
+            border-color: rgba(92,124,250,.75);
+            background: rgba(92,124,250,.12);
+        }
 
         /* CALCULATOR */
         .calc-wrap{
@@ -398,60 +413,6 @@
             border-top:1px solid rgba(255,255,255,.06);
             padding-top:18px;
         }
-
-        /* ===== NEW TIP POPUP ===== */
-        .toast{
-            position:fixed;
-            right:18px;
-            bottom:18px;
-            width:min(360px, calc(100vw - 36px));
-            background:rgba(13,16,26,.85);
-            border:1px solid rgba(255,255,255,.10);
-            border-radius:18px;
-            box-shadow:0 30px 90px rgba(0,0,0,.70);
-            backdrop-filter: blur(10px);
-            transform: translateY(16px);
-            opacity:0;
-            pointer-events:none;
-            transition: .25s ease;
-            z-index:9999;
-        }
-        .toast.show{
-            opacity:1;
-            transform: translateY(0);
-            pointer-events:auto;
-        }
-        .toast-inner{
-            padding:16px;
-            display:grid;
-            gap:10px;
-            position:relative;
-        }
-        .toast-title{ font-weight:900; }
-        .toast-text{ color:var(--muted); font-size:14px; line-height:1.35; }
-        .toast-btn{
-            width:100%;
-            padding:12px 14px;
-            border-radius:14px;
-            border:none;
-            font-weight:900;
-            cursor:pointer;
-            background: linear-gradient(135deg,var(--blue),var(--cyan));
-            color:white;
-        }
-        .toast-close{
-            position:absolute;
-            top:10px;
-            right:10px;
-            width:30px;
-            height:30px;
-            border-radius:10px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(255,255,255,.06);
-            color:#e9ecf1;
-            cursor:pointer;
-        }
-        /* ========================= */
 
         @media (max-width: 980px){
             .hero-grid{ grid-template-columns: 1fr; }
@@ -541,7 +502,7 @@
         <div class="section-head">
             <div>
                 <h2 class="section-title">Published Tips</h2>
-                <p class="section-note">Newest first • Showing 9 by default</p>
+                <p class="section-note">Newest first • 9 per page • Pages below</p>
             </div>
 
             <div class="controls">
@@ -562,8 +523,10 @@
             </div>
         </div>
 
-        <div class="show-more-wrap" id="showMoreWrap" style="display:none;">
-            <button class="btn show-more-btn" id="showMoreBtn">Show more</button>
+        <!-- Pagination -->
+        <div class="pager-wrap" id="paginationWrap" style="display:none;">
+            <button class="btn" id="backToFirstBtn">← Back to page 1</button>
+            <div class="pager-btns" id="paginationBtns"></div>
         </div>
     </div>
 </div>
@@ -663,17 +626,6 @@
     </div>
 </div>
 
-<!-- ===== NEW TIP POPUP ===== -->
-<div id="newTipToast" class="toast" aria-live="polite" aria-atomic="true">
-    <div class="toast-inner">
-        <div class="toast-title">New tip published</div>
-        <div id="toastText" class="toast-text">A new pick is live. Tap to view.</div>
-        <button class="toast-btn" id="toastBtn">View newest</button>
-        <button class="toast-close" id="toastClose" aria-label="Close">✕</button>
-    </div>
-</div>
-<!-- ========================= -->
-
 <script>
     // =========================
     // GOOGLE SHEETS SETTINGS
@@ -697,8 +649,10 @@
     const searchEl = document.getElementById("search");
     const sortByEl = document.getElementById("sortBy");
 
-    const showMoreWrap = document.getElementById("showMoreWrap");
-    const showMoreBtn = document.getElementById("showMoreBtn");
+    // Pagination elements
+    const paginationWrap = document.getElementById("paginationWrap");
+    const paginationBtns = document.getElementById("paginationBtns");
+    const backToFirstBtn = document.getElementById("backToFirstBtn");
 
     const totalProfitText = document.getElementById("totalProfitText");
     const winLossText = document.getElementById("winLossText");
@@ -709,8 +663,10 @@
     const profitCtx = profitCanvas.getContext("2d");
 
     let tips = [];
-    let expanded = false;
-    const DEFAULT_VISIBLE = 9;
+
+    // Pagination state
+    const PAGE_SIZE = 9;
+    let currentPage = 1;
 
     function parseGviz(jsonText) {
         const start = jsonText.indexOf("{");
@@ -842,24 +798,67 @@
         return { text: s, cls:"", bold:false };
     }
 
-    function getDisplayRows(rows){
-        const q = (searchEl.value || "").trim();
-        if (q) return rows;
-        return expanded ? rows : rows.slice(0, DEFAULT_VISIBLE);
+    /* =========================
+       PAGINATION HELPERS
+    ========================= */
+    function getPagedRows(rows){
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return rows.slice(start, start + PAGE_SIZE);
     }
 
-    function updateShowMoreUI(totalCount, shownCount){
-        const isSearching = (searchEl.value || "").trim().length > 0;
+    function renderPagination(totalCount, isSearching){
         if (isSearching){
-            showMoreWrap.style.display = "none";
+            paginationWrap.style.display = "none";
             return;
         }
-        if (totalCount > DEFAULT_VISIBLE){
-            showMoreWrap.style.display = "flex";
-            const hidden = totalCount - shownCount;
-            showMoreBtn.textContent = expanded ? "Show less" : `Show more (${hidden})`;
-        } else {
-            showMoreWrap.style.display = "none";
+
+        const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+        paginationWrap.style.display = totalPages > 1 ? "flex" : "none";
+
+        backToFirstBtn.style.display = (currentPage > 1) ? "inline-flex" : "none";
+        backToFirstBtn.onclick = () => {
+            currentPage = 1;
+            renderTips();
+            document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
+        };
+
+        paginationBtns.innerHTML = "";
+
+        // Smart-ish pagination: show up to 9 buttons with ellipses
+        const makeBtn = (p) => {
+            const b = document.createElement("button");
+            b.className = "btn page" + (p === currentPage ? " active" : "");
+            b.textContent = String(p);
+            b.onclick = () => {
+                currentPage = p;
+                renderTips();
+                document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
+            };
+            return b;
+        };
+
+        const makeDots = () => {
+            const s = document.createElement("span");
+            s.textContent = "…";
+            s.style.color = "rgba(154,164,194,.8)";
+            s.style.fontWeight = "900";
+            s.style.padding = "0 6px";
+            return s;
+        };
+
+        const total = totalPages;
+        const p = currentPage;
+
+        // Always show 1 and last; show neighbors around current
+        const pages = new Set([1, total, p, p-1, p+1, p-2, p+2]);
+        const arr = [...pages].filter(x => x>=1 && x<=total).sort((a,b)=>a-b);
+
+        // Build with dots if gaps
+        let prev = 0;
+        for (const page of arr){
+            if (prev && page - prev > 1) paginationBtns.appendChild(makeDots());
+            paginationBtns.appendChild(makeBtn(page));
+            prev = page;
         }
     }
 
@@ -869,6 +868,7 @@
 
         let rows = tips.slice();
 
+        // Filter
         if (q){
             rows = rows.filter(t => {
                 const hay = `${t.game} ${t.tip} ${t.outcome ?? ""} ${t.odds ?? ""} ${t.stakeRaw ?? ""} ${t.profitRaw ?? ""} ${t.dateRaw ?? ""}`.toLowerCase();
@@ -876,6 +876,7 @@
             });
         }
 
+        // Sort
         if (sort === "NEWEST"){
             rows.sort((a,b) => new Date(b.date) - new Date(a.date));
         } else if (sort === "HIGHEST_ODDS"){
@@ -891,12 +892,19 @@
             });
         }
 
-        const displayRows = getDisplayRows(rows);
+        const isSearching = q.length > 0;
+        if (isSearching) currentPage = 1;
+
+        const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const displayRows = isSearching ? rows : getPagedRows(rows);
+
         tipsGrid.innerHTML = "";
 
         if (!rows.length){
             tipsGrid.innerHTML = `<div class="empty">No tips match your search. Try another keyword.</div>`;
-            updateShowMoreUI(0,0);
+            renderPagination(0, false);
             return;
         }
 
@@ -913,30 +921,30 @@
             const card = document.createElement("div");
             card.className = `tip-card ${cardClass}`;
             card.innerHTML = `
-          <div class="tip-top">
-            <div class="badge"><span class="mini"></span> Tip</div>
-            <div class="meta">${escapeHtml(fmtPublishTime(t.date))}</div>
-          </div>
+        <div class="tip-top">
+          <div class="badge"><span class="mini"></span> Tip</div>
+          <div class="meta">${escapeHtml(fmtPublishTime(t.date))}</div>
+        </div>
 
-          <h3 class="tip-title">${escapeHtml(t.game || "Game")}</h3>
+        <h3 class="tip-title">${escapeHtml(t.game || "Game")}</h3>
 
-          <p class="tip-desc">
-            <strong style="color:var(--text)">Pick:</strong> ${escapeHtml(t.tip || "—")}<br/>
-            <span style="color: var(--muted);">Stake Size:</span> ${escapeHtml(stakeSizeStr)}<br/>
-            <span style="color: var(--muted);">Profit:</span> ${profitInline}
-          </p>
+        <p class="tip-desc">
+          <strong style="color:var(--text)">Pick:</strong> ${escapeHtml(t.tip || "—")}<br/>
+          <span style="color: var(--muted);">Stake Size:</span> ${escapeHtml(stakeSizeStr)}<br/>
+          <span style="color: var(--muted);">Profit:</span> ${profitInline}
+        </p>
 
-          <div class="tip-bottom">
-            <span class="pill blue">Odds: ${escapeHtml(String(oddsStr))}</span>
-            ${outcomePill(t.outcome)}
-            <span class="pill">Stake: ${escapeHtml(stakeSizeStr)}</span>
-            <span class="pill ${profitFmt.cls}">Profit: ${escapeHtml(profitFmt.text)}</span>
-          </div>
-        `;
+        <div class="tip-bottom">
+          <span class="pill blue">Odds: ${escapeHtml(String(oddsStr))}</span>
+          ${outcomePill(t.outcome)}
+          <span class="pill">Stake: ${escapeHtml(stakeSizeStr)}</span>
+          <span class="pill ${profitFmt.cls}">Profit: ${escapeHtml(profitFmt.text)}</span>
+        </div>
+      `;
             tipsGrid.appendChild(card);
         });
 
-        updateShowMoreUI(rows.length, displayRows.length);
+        renderPagination(rows.length, isSearching);
     }
 
     function computeStatsAndChart(){
@@ -1059,123 +1067,14 @@
         ctx.restore();
     }
 
-    // =========================
-    // NEW TIP POPUP LOGIC
-    // =========================
-    function showNewTipToast(message, onView) {
-        const toast = document.getElementById("newTipToast");
-        const toastText = document.getElementById("toastText");
-        const btn = document.getElementById("toastBtn");
-        const close = document.getElementById("toastClose");
-
-        toastText.textContent = message || "A new pick is live. Tap to view.";
-
-        btn.onclick = () => {
-            toast.classList.remove("show");
-            if (typeof onView === "function") onView();
-        };
-
-        close.onclick = () => toast.classList.remove("show");
-
-        toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 10000);
-    }
-
-    function getNewestTip() {
-        if (!Array.isArray(tips) || tips.length === 0) return null;
-        const sorted = tips
-            .filter(t => t.date && !isNaN(new Date(t.date).getTime()))
-            .slice()
-            .sort((a,b) => new Date(b.date) - new Date(a.date));
-        return sorted[0] || null;
-    }
-
-    function checkForNewTipPopup() {
-        const newest = getNewestTip();
-        if (!newest) return;
-
-        const newestTime = new Date(newest.date).getTime();
-        if (!isFinite(newestTime)) return;
-
-        const key = "lastSeenTipTime";
-        const lastSeen = Number(localStorage.getItem(key));
-
-        if (!isFinite(lastSeen) || lastSeen <= 0) {
-            localStorage.setItem(key, String(newestTime));
-            return;
-        }
-
-        if (newestTime > lastSeen) {
-            showNewTipToast(`New tip: ${newest.game || "New match"} — tap to view`, () => {
-                document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
-                localStorage.setItem(key, String(newestTime));
-            });
-        }
-    }
-
-    async function loadTipsFromSheet(){
-        try{
-            const res = await fetch(sheetUrl(), { cache: "no-store" });
-            const text = await res.text();
-            const data = parseGviz(text);
-
-            const rows = data?.table?.rows ?? [];
-
-            tips = rows.map((r) => {
-                const c = (n) => r?.c?.[n]?.v ?? null;
-                const publishVal = c(0);
-                const publishISO = toISOorDate(publishVal);
-
-                return {
-                    date: publishISO,
-                    dateRaw: publishVal,
-                    game: c(1),
-                    odds: c(2) != null ? Number(c(2)) : null,
-                    tip: c(3),
-                    outcome: c(4),
-                    stakeRaw: c(5),
-                    profitRaw: c(6)
-                };
-            }).filter(t => t.game || t.tip);
-
-            sortByEl.value = "NEWEST";
-            expanded = false;
-
-            renderTips();
-            computeStatsAndChart();
-            checkForNewTipPopup();
-        } catch (e){
-            tipsGrid.innerHTML = `
-          <div class="empty">
-            Could not load tips from Google Sheets.<br/>
-            ✅ Make sure you did <strong>File → Share → Publish to web</strong> on the correct tab.<br/>
-            ✅ Set <strong>TAB_NAME</strong> to match your sheet tab name.<br/>
-            ✅ Column A must be <strong>Date time</strong> to show time.
-          </div>
-        `;
-            console.error(e);
-        }
-    }
-
-    showMoreBtn.addEventListener("click", () => {
-        expanded = !expanded;
-        renderTips();
-        if (!expanded){
-            document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-    });
-
-    searchEl.addEventListener("input", renderTips);
-    sortByEl.addEventListener("change", renderTips);
-
-    // ====== EV calculator (FIXED: Soft Side selector) ======
+    // ====== EV calculator (Soft Side selector) ======
     function calculateEV() {
         const sharpOver = parseFloat(document.getElementById('sharpOver').value);
         const sharpUnder = parseFloat(document.getElementById('sharpUnder').value);
         const soft = parseFloat(document.getElementById('softOdds').value);
         const bankroll = parseFloat(document.getElementById('bankroll').value);
         const market = document.getElementById('market').value;
-        const softSide = document.getElementById('softSide').value; // NEW
+        const softSide = document.getElementById('softSide').value;
 
         if ([sharpOver, sharpUnder, soft, bankroll].some(Number.isNaN)) return;
         if (sharpOver <= 1 || sharpUnder <= 1 || soft <= 1 || bankroll <= 0) return;
@@ -1193,7 +1092,6 @@
         const fairLow = Math.min(fairO, fairU);
         const fairHigh = Math.max(fairO, fairU);
 
-        // ✅ FIX: do not guess by "soft > fairO". Use user selection.
         const bettingOver = softSide === "OVER";
         const fairProb = bettingOver ? fairProbO : fairProbU;
 
@@ -1230,10 +1128,63 @@
 
     document.getElementById("year").textContent = new Date().getFullYear();
 
+    async function loadTipsFromSheet(){
+        try{
+            const res = await fetch(sheetUrl(), { cache: "no-store" });
+            const text = await res.text();
+            const data = parseGviz(text);
+
+            const rows = data?.table?.rows ?? [];
+
+            tips = rows.map((r) => {
+                const c = (n) => r?.c?.[n]?.v ?? null;
+                const publishVal = c(0);
+                const publishISO = toISOorDate(publishVal);
+
+                return {
+                    date: publishISO,
+                    dateRaw: publishVal,
+                    game: c(1),
+                    odds: c(2) != null ? Number(c(2)) : null,
+                    tip: c(3),
+                    outcome: c(4),
+                    stakeRaw: c(5),
+                    profitRaw: c(6)
+                };
+            }).filter(t => t.game || t.tip);
+
+            sortByEl.value = "NEWEST";
+            currentPage = 1;
+
+            renderTips();
+            computeStatsAndChart();
+        } catch (e){
+            tipsGrid.innerHTML = `
+        <div class="empty">
+          Could not load tips from Google Sheets.<br/>
+          ✅ Make sure you did <strong>File → Share → Publish to web</strong> on the correct tab.<br/>
+          ✅ Set <strong>TAB_NAME</strong> to match your sheet tab name.<br/>
+          ✅ Column A must be <strong>Date time</strong> to show time.
+        </div>
+      `;
+            console.error(e);
+        }
+    }
+
+    searchEl.addEventListener("input", () => {
+        currentPage = 1;
+        renderTips();
+    });
+
+    sortByEl.addEventListener("change", () => {
+        currentPage = 1;
+        renderTips();
+    });
+
     // Initial load
     loadTipsFromSheet();
 
-    // Optional: auto-refresh tips (and popup) every 2 minutes
+    // Optional: auto-refresh tips every 2 minutes
     setInterval(loadTipsFromSheet, 2 * 60 * 1000);
 </script>
 </body>
