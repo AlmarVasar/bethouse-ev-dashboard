@@ -3,471 +3,106 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>BetHouse — Sports Tips & EV Calculator</title>
+    <title>BetHouse — Free Sports Tips + EV Calculator</title>
 
-    <style>
-        :root{
-            --bg0:#070912;
-            --bg1:#0b1020;
-            --card:#0f162c;
-            --card2:#0c1226;
-            --stroke:rgba(255,255,255,.08);
-            --text:#e9ecf1;
-            --muted:#9aa4c2;
-            --muted2:#7f89aa;
-            --blue:#5c7cfa;
-            --cyan:#4dabf7;
-            --green:#4ade80;
-            --red:#f87171;
-            --yellow:#fbbf24;
-            --shadow: 0 30px 120px rgba(0,0,0,.65);
-            --radius: 22px;
-        }
-        *{ box-sizing:border-box }
-        html,body{ height:100% }
-        body{
-            margin:0;
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            color:var(--text);
-            background:
-                    radial-gradient(900px 600px at 12% -10%, rgba(92,124,250,.25) 0%, transparent 55%),
-                    radial-gradient(900px 600px at 90% 120%, rgba(77,171,247,.18) 0%, transparent 55%),
-                    radial-gradient(800px 500px at 40% 30%, rgba(74,222,128,.08) 0%, transparent 60%),
-                    linear-gradient(180deg, var(--bg0), var(--bg1));
-            overflow-x:hidden;
-        }
-        a{ color:inherit; text-decoration:none }
-        .container{ width:min(1180px, 92vw); margin:0 auto; }
-
-        /* NAV */
-        .nav{
-            position:sticky; top:0; z-index:50;
-            backdrop-filter: blur(10px);
-            background: linear-gradient(180deg, rgba(7,9,18,.75), rgba(7,9,18,.35));
-            border-bottom: 1px solid rgba(255,255,255,.06);
-        }
-        .nav-inner{
-            display:flex; align-items:center; justify-content:space-between;
-            padding:14px 0; gap:16px;
-        }
-        .brand{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
-        .logo{
-            width:36px; height:36px; border-radius:12px;
-            background:
-                    radial-gradient(12px 12px at 30% 35%, rgba(255,255,255,.35), transparent 60%),
-                    linear-gradient(135deg, rgba(92,124,250,1), rgba(77,171,247,1));
-            box-shadow: 0 14px 40px rgba(92,124,250,.25);
-            border:1px solid rgba(255,255,255,.2);
-        }
-        .nav-links{ display:flex; align-items:center; gap:18px; color:var(--muted); font-weight:600; font-size:13px; }
-        .nav-links a:hover{ color:var(--text) }
-        .nav-actions{ display:flex; gap:10px; align-items:center; }
-        .btn{
-            display:inline-flex; align-items:center; justify-content:center;
-            padding:10px 14px;
-            border-radius:14px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(255,255,255,.03);
-            color:var(--text);
-            font-weight:700; font-size:13px;
-            cursor:pointer;
-            transition: transform .12s ease, border-color .12s ease, background .12s ease;
-            user-select:none;
-            white-space:nowrap;
-        }
-        .btn:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.18); background: rgba(255,255,255,.05); }
-        .btn.primary{ border:none; background: linear-gradient(135deg, var(--blue), var(--cyan)); box-shadow: 0 18px 55px rgba(92,124,250,.25); }
-        .btn.primary:hover{ transform: translateY(-1px); filter:saturate(1.05); }
-
-        /* HERO */
-        .hero{ padding:44px 0 18px; }
-        .hero-grid{ display:grid; grid-template-columns: 1.2fr .8fr; gap:22px; align-items:stretch; }
-        .hero-card{
-            background:
-                    radial-gradient(900px 500px at 10% 10%, rgba(92,124,250,.18), transparent 55%),
-                    linear-gradient(180deg, rgba(255,255,255,.05), transparent),
-                    var(--card);
-            border:1px solid rgba(255,255,255,.07);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding:26px;
-            overflow:hidden;
-            position:relative;
-        }
-        .hero-card:before{
-            content:""; position:absolute; inset:-2px;
-            background: radial-gradient(400px 220px at 30% 0%, rgba(255,255,255,.08), transparent 55%);
-            pointer-events:none; opacity:.7;
-        }
-        .kicker{
-            display:inline-flex; gap:8px; align-items:center;
-            padding:8px 10px;
-            border-radius: 999px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(255,255,255,.03);
-            color: var(--muted);
-            font-weight:700; font-size:12px;
-            position:relative; z-index:1;
-        }
-        .dot{ width:8px; height:8px; border-radius:999px; background: var(--green); box-shadow:0 0 0 5px rgba(74,222,128,.10); }
-        h1{ margin:14px 0 10px; font-size:42px; line-height:1.05; letter-spacing:-.6px; position:relative; z-index:1; }
-        .sub{ margin:0 0 18px; color: var(--muted); font-size:15px; line-height:1.6; position:relative; z-index:1; max-width: 70ch; }
-        .hero-cta{ display:flex; gap:12px; flex-wrap:wrap; position:relative; z-index:1; }
-
-        .side-card{
-            background: linear-gradient(180deg, rgba(255,255,255,.05), transparent), var(--card2);
-            border:1px solid rgba(255,255,255,.07);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding:18px;
-            display:flex; flex-direction:column; gap:12px;
-        }
-        .stat{
-            padding:14px; border-radius:18px;
-            border:1px solid rgba(255,255,255,.08);
-            background: rgba(255,255,255,.03);
-        }
-        .stat .label{ color:var(--muted2); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
-        .stat .value{ font-size:22px; font-weight:900; margin-top:8px; }
-        .stat .hint{ margin-top:6px; color:var(--muted); font-size:12.5px; line-height:1.45; }
-
-        .chart-card{
-            padding:14px;
-            border-radius:18px;
-            border:1px solid rgba(255,255,255,.08);
-            background: rgba(0,0,0,.18);
-        }
-        .chart-head{
-            display:flex;
-            justify-content:space-between;
-            align-items:flex-end;
-            gap:12px;
-            margin-bottom:10px;
-        }
-        .chart-title{
-            font-size:12px;
-            text-transform:uppercase;
-            letter-spacing:.8px;
-            color:var(--muted2);
-            font-weight:900;
-        }
-        .chart-metrics{
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
-            justify-content:flex-end;
-            text-align:right;
-            font-size:12px;
-            color:var(--muted);
-            font-weight:800;
-        }
-        .chart-metrics b{ color:var(--text); font-weight:900; }
-        canvas{ width:100%; height:150px; display:block; }
-
-        /* TIPS */
-        .section{ padding:18px 0 12px; }
-        .section-head{
-            display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:14px;
-        }
-        .section-title{ font-size:18px; font-weight:900; letter-spacing:-.2px; margin:0; }
-        .section-note{ color:var(--muted); font-size:13px; margin:0; }
-
-        .controls{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
-        .input{
-            padding:10px 12px;
-            border-radius:14px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(0,0,0,.18);
-            color: var(--text);
-            font-weight:650; font-size:13px;
-            outline:none;
-            min-width: 220px;
-        }
-        .select{
-            padding:10px 12px;
-            border-radius:14px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(0,0,0,.18);
-            color: var(--text);
-            font-weight:650; font-size:13px;
-            outline:none;
-            min-width: 210px;
-        }
-        .input::placeholder{ color: rgba(154,164,194,.65); font-weight:600; }
-        .input:focus, .select:focus{ border-color: rgba(92,124,250,.75); box-shadow: 0 0 0 4px rgba(92,124,250,.16); }
-
-        .grid{ display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; }
-
-        /* Tip bubble color by outcome */
-        .tip-card{
-            grid-column: span 4;
-            padding:16px;
-            border-radius: 20px;
-            border:1px solid rgba(255,255,255,.09);
-            box-shadow: 0 18px 60px rgba(0,0,0,.35);
-            display:flex; flex-direction:column; gap:12px;
-            position:relative; overflow:hidden;
-            background: rgba(255,255,255,.03);
-        }
-        .tip-card:after{
-            content:""; position:absolute; inset:-1px;
-            background: radial-gradient(240px 160px at 80% 0%, rgba(255,255,255,.08), transparent 55%);
-            opacity:.7; pointer-events:none;
-        }
-
-        .tip-card.win{
-            border-color: rgba(74,222,128,.22);
-            background:
-                    radial-gradient(600px 280px at 15% 0%, rgba(74,222,128,.18), transparent 60%),
-                    rgba(255,255,255,.03);
-        }
-        .tip-card.loss{
-            border-color: rgba(248,113,113,.22);
-            background:
-                    radial-gradient(600px 280px at 15% 0%, rgba(248,113,113,.18), transparent 60%),
-                    rgba(255,255,255,.03);
-        }
-        .tip-card.pending{
-            border-color: rgba(251,191,36,.22);
-            background:
-                    radial-gradient(600px 280px at 15% 0%, rgba(251,191,36,.18), transparent 60%),
-                    rgba(255,255,255,.03);
-        }
-        .tip-card.refund{
-            border-color: rgba(92,124,250,.22);
-            background:
-                    radial-gradient(600px 280px at 15% 0%, rgba(92,124,250,.14), transparent 60%),
-                    rgba(255,255,255,.03);
-        }
-
-        .tip-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; position:relative; z-index:1; }
-        .badge{
-            display:inline-flex; align-items:center; gap:8px;
-            padding:8px 10px;
-            border-radius:999px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(0,0,0,.18);
-            font-size:12px; font-weight:800;
-        }
-        .badge .mini{ width:7px;height:7px;border-radius:999px;background: var(--yellow); box-shadow:0 0 0 5px rgba(251,191,36,.10); }
-        .meta{ color: var(--muted); font-size:12px; font-weight:750; white-space:nowrap; }
-        .tip-title{ font-size:15px; font-weight:900; letter-spacing:-.2px; margin:0; position:relative; z-index:1; }
-        .tip-desc{ margin:0; color: var(--muted); font-size:13px; line-height:1.55; position:relative; z-index:1; flex:1; }
-        .tip-bottom{ display:flex; justify-content:flex-start; align-items:center; gap:8px; flex-wrap:wrap; position:relative; z-index:1; margin-top:2px; }
-
-        .pill{
-            padding:8px 10px;
-            border-radius:999px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(0,0,0,.18);
-            color: var(--text);
-            font-weight:900; font-size:12px;
-            display:inline-flex; gap:6px; align-items:center;
-        }
-        .pill.green{ border-color: rgba(74,222,128,.25); }
-        .pill.blue{ border-color: rgba(92,124,250,.25); }
-        .pill.red{ border-color: rgba(248,113,113,.25); }
-        .pill.yellow{ border-color: rgba(251,191,36,.25); }
-
-        .positive{ color: var(--green); font-weight:900; }
-        .negative{ color: var(--red); font-weight:900; }
-
-        .empty{
-            grid-column: 1 / -1;
-            padding:18px;
-            border-radius:20px;
-            border:1px dashed rgba(255,255,255,.16);
-            background: rgba(0,0,0,.12);
-            color: var(--muted);
-            font-weight:700;
-        }
-
-        .loading{
-            grid-column: 1 / -1;
-            padding:14px 16px;
-            border-radius:18px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(0,0,0,.18);
-            color: var(--muted);
-            font-weight:750;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:12px;
-        }
-        .bar{
-            flex:1;
-            height:10px;
-            border-radius:999px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(255,255,255,.04);
-            overflow:hidden;
-            position:relative;
-        }
-        .bar > span{
-            position:absolute; inset:0;
-            width:40%;
-            border-radius:999px;
-            background: linear-gradient(90deg, rgba(92,124,250,.15), rgba(92,124,250,.85), rgba(77,171,247,.85));
-            animation: move 1.1s ease-in-out infinite;
-        }
-        @keyframes move{
-            0%{ transform: translateX(-60%); }
-            100%{ transform: translateX(220%); }
-        }
-
-        /* PAGINATION */
-        .pager-wrap{
-            margin-top: 14px;
-            display:flex;
-            justify-content:center;
-            gap:10px;
-            flex-wrap:wrap;
-            align-items:center;
-        }
-        .pager-btns{
-            display:flex;
-            gap:8px;
-            flex-wrap:wrap;
-            justify-content:center;
-            align-items:center;
-        }
-        .btn.page.active{
-            border-color: rgba(92,124,250,.75);
-            background: rgba(92,124,250,.12);
-        }
-
-        /* CALCULATOR */
-        .calc-wrap{
-            margin-top: 22px;
-            padding: 26px;
-            border-radius: var(--radius);
-            border: 1px solid rgba(255,255,255,.08);
-            background:
-                    radial-gradient(900px 500px at 10% 0%, rgba(77,171,247,.16), transparent 55%),
-                    linear-gradient(180deg, rgba(255,255,255,.05), transparent),
-                    rgba(255,255,255,.03);
-            box-shadow: var(--shadow);
-            display:grid;
-            grid-template-columns: 1fr 1fr;
-            gap:18px;
-            align-items:start;
-        }
-        .calc-head h2{ margin:0; font-size:20px; font-weight:900; letter-spacing:-.2px; }
-        .calc-head p{ margin:10px 0 0; color: var(--muted); font-size:13.5px; line-height:1.6; max-width: 70ch; }
-        .calc-card{
-            padding:18px;
-            border-radius: 20px;
-            border:1px solid rgba(255,255,255,.08);
-            background: rgba(0,0,0,.18);
-        }
-        .field-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
-        label{
-            display:block;
-            font-size:11px; font-weight:800;
-            text-transform:uppercase;
-            letter-spacing:.8px;
-            color: var(--muted2);
-            margin-bottom:8px;
-        }
-        input[type="number"], select{
-            width:100%;
-            padding:12px 12px;
-            border-radius:14px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(7,9,18,.35);
-            color: var(--text);
-            font-size:14px; font-weight:700;
-            outline:none;
-        }
-        input[type="number"]::placeholder{ color: rgba(154,164,194,.55) }
-        input[type="number"]:focus, select:focus{
-            border-color: rgba(92,124,250,.8);
-            box-shadow: 0 0 0 4px rgba(92,124,250,.16);
-        }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button{
-            -webkit-appearance:auto;
-            filter:invert(1);
-        }
-
-        .result{
-            margin-top:14px;
-            padding:14px;
-            border-radius:18px;
-            border:1px solid rgba(255,255,255,.10);
-            background: rgba(7,9,18,.35);
-            display:none;
-        }
-        .row{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin:10px 0; font-size:13px; font-weight:750; }
-        .row span:first-child{ color: var(--muted); font-weight:800; letter-spacing:.2px; }
-        .divider{ height:1px; background: rgba(255,255,255,.08); margin:12px 0; }
-
-        .footer{
-            padding:26px 0 36px;
-            color: rgba(154,164,194,.8);
-            font-size:12.5px;
-        }
-        .footer-inner{
-            display:flex; justify-content:space-between; align-items:center; gap:12px;
-            border-top:1px solid rgba(255,255,255,.06);
-            padding-top:18px;
-        }
-
-        @media (max-width: 980px){
-            .hero-grid{ grid-template-columns: 1fr; }
-            .tip-card{ grid-column: span 6; }
-            .calc-wrap{ grid-template-columns: 1fr; }
-            h1{ font-size: 36px; }
-        }
-        @media (max-width: 640px){
-            .nav-links{ display:none; }
-            .tip-card{ grid-column: span 12; }
-            .field-row{ grid-template-columns: 1fr; }
-            h1{ font-size: 32px; }
-            .input, .select{ min-width: unset; width: 100%; }
-            .controls{ justify-content:stretch; }
-        }
-    </style>
+    <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
+<div class="noise" aria-hidden="true"></div>
+
+<!-- NAV -->
 <div class="nav">
     <div class="container">
         <div class="nav-inner">
             <div class="brand">
                 <div class="logo" aria-hidden="true"></div>
                 <div>
-                    <div style="font-size:14px; line-height:1; font-weight:900;">BetHouse</div>
-                    <div style="font-size:11px; line-height:1.2; color:var(--muted); font-weight:700;">Sports Tips • EV Engine</div>
+                    <div class="name">BetHouse</div>
+                    <div class="tag">Free tips • EV calculator • Track record</div>
                 </div>
             </div>
+
             <div class="nav-links">
-                <a href="#tips">Published Tips</a>
+                <a href="#tips">Free Tips</a>
+                <a href="#premium">Premium</a>
                 <a href="#calculator">EV Calculator</a>
             </div>
+
             <div class="nav-actions">
-                <a class="btn" href="#calculator">Try Calculator</a>
-                <a class="btn primary" href="#tips">View Tips</a>
+                <button class="btn ghost" id="btnScrollTips">See Latest Tips</button>
+                <button class="btn primary" id="btnScrollJoin">Join Premium</button>
             </div>
         </div>
     </div>
 </div>
 
-<div class="hero">
+<!-- TIPS (FIRST) -->
+<div class="section" id="tips">
     <div class="container">
-        <div class="hero-grid">
-            <div class="hero-card">
-                <div class="kicker"><span class="dot"></span> Newest tips first • Outcome bubbles</div>
-                <h1>Latest tips on top — clean and instantly readable.</h1>
-                <p class="sub">
-                    Tip bubbles are color-tinted by status:
-                    <b style="color:var(--green)">WIN</b>, <b style="color:var(--red)">LOST</b>,
-                    <b style="color:var(--yellow)">PENDING</b>. Performance uses column G.
+
+        <!-- TOP BANNER -->
+        <div class="hero-grid top-grid">
+            <div class="hero-card hero-card--pro">
+                <div class="kicker">
+                    <span class="dot"></span>
+                    <b>Latest tips first</b>
+                    <span class="k-sep">•</span>
+                    click any card for details
+                </div>
+
+                <h1>Tips first. Results visible.</h1>
+
+                <p class="lead">
+                    Pick → odds → stake → outcome. Save favorites. Verify the track record.
                 </p>
+
+                <div class="quick-stats" aria-label="Quick performance stats">
+                    <div class="stat-tile">
+                        <div class="st-label">Win rate</div>
+                        <div class="st-value" id="statWinRate">—</div>
+                    </div>
+                    <div class="stat-tile">
+                        <div class="st-label">ROI</div>
+                        <div class="st-value" id="statROI">—</div>
+                    </div>
+                    <div class="stat-tile">
+                        <div class="st-label">Avg odds</div>
+                        <div class="st-value" id="statAvgOdds">—</div>
+                    </div>
+                </div>
+
                 <div class="hero-cta">
-                    <a class="btn primary" href="#tips">Browse Tips</a>
-                    <a class="btn" href="#calculator">Try EV Calculator</a>
+                    <a class="btn" href="#tips">Browse Tips</a>
+                    <button class="btn primary" id="btnPremiumJoinTop">Join Premium (Full Tips)</button>
+                    <a class="btn ghost" href="#calculator">Use EV Calculator</a>
+                    <button class="btn ghost" id="btnRandomTip">Random Tip</button>
+                </div>
+
+                <div class="micro-row">
+                    <div class="micro-pill">
+                        <span class="mp-ic">⚡</span>
+                        <b>Premium:</b> Full tips + early drops in Telegram
+                    </div>
+                    <div class="micro-pill ghost">
+                        <span class="mp-ic">↻</span>
+                        Updated <span id="statUpdated">—</span>
+                    </div>
+                </div>
+
+                <div class="how-row">
+                    <div class="how">
+                        <div class="how-n">1</div>
+                        <div class="how-t">Scan newest tips</div>
+                    </div>
+                    <div class="how">
+                        <div class="how-n">2</div>
+                        <div class="how-t">Tap for details</div>
+                    </div>
+                    <div class="how">
+                        <div class="how-n">3</div>
+                        <div class="how-t">Use EV before you bet</div>
+                    </div>
                 </div>
             </div>
 
@@ -488,31 +123,50 @@
                         </div>
                     </div>
                     <canvas id="profitChart" width="520" height="180"></canvas>
-                    <div style="margin-top:8px;color:var(--muted);font-size:12px;line-height:1.45;">
-                        Based on column G as profit amount, signed by outcome.
+                    <div style="margin-top:8px;color:var(--muted);font-size:12px;line-height:1.5;">
+                        Based on column G as profit, signed by outcome. (Pending = 0)
+                    </div>
+                </div>
+
+                <div class="stat">
+                    <div class="label">Quick tip</div>
+                    <div class="hint">
+                        Toggle <b>Favorites</b> to instantly filter your saved picks.
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<div class="section" id="tips">
-    <div class="container">
-        <div class="section-head">
+        <!-- TIPS LIST -->
+        <div class="section-head" style="margin-top:18px;">
             <div>
-                <h2 class="section-title">Published Tips</h2>
-                <p class="section-note">Newest first • 9 per page • Pages below</p>
+                <h2 class="section-title">Free Tips (Newest First)</h2>
+                <p class="section-note">9 per page • Search + favorites • Click a card for details</p>
             </div>
 
             <div class="controls">
-                <input id="search" class="input" placeholder="Search (game, tip, outcome, odds, stake, profit…)" />
+                <input id="search" class="input" placeholder="Search (game, pick, outcome, odds, stake, profit…)" />
                 <select id="sortBy" class="select">
-                    <option value="NEWEST" selected>Sort: Newest (default)</option>
+                    <option value="NEWEST" selected>Sort: Newest</option>
                     <option value="HIGHEST_ODDS">Sort: Highest Odds</option>
                     <option value="LOWEST_ODDS">Sort: Lowest Odds</option>
                     <option value="HIGHEST_STAKE">Sort: Highest Stake (abs)</option>
                 </select>
+            </div>
+        </div>
+
+        <div class="toggle-row">
+            <div class="toggle" id="toggleFavorites">
+                Favorites only
+                <div class="switch"><div class="knob"></div></div>
+            </div>
+            <div class="toggle" id="toggleWins">
+                Wins only
+                <div class="switch"><div class="knob"></div></div>
+            </div>
+            <div class="toggle" id="togglePending">
+                Pending only
+                <div class="switch"><div class="knob"></div></div>
             </div>
         </div>
 
@@ -523,24 +177,109 @@
             </div>
         </div>
 
-        <!-- Pagination -->
         <div class="pager-wrap" id="paginationWrap" style="display:none;">
             <button class="btn" id="backToFirstBtn">← Back to page 1</button>
             <div class="pager-btns" id="paginationBtns"></div>
         </div>
+
     </div>
 </div>
 
+<!-- PREMIUM -->
+<div class="section" id="premium">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2 class="section-title">Premium Telegram Group</h2>
+                <p class="section-note">All tips • Early drops • Higher volume • VIP support</p>
+            </div>
+            <div class="controls">
+                <button class="btn ghost" id="btnPremiumLearn">See what’s inside</button>
+                <button class="btn primary" id="btnPremiumJoin">Join Premium</button>
+            </div>
+        </div>
+
+        <div class="premium-grid">
+            <div class="premium-card">
+                <div class="premium-kicker">
+                    <span class="premium-dot"></span>
+                    Premium Access
+                </div>
+
+                <h3 class="premium-title">Get every tip — instantly in Telegram.</h3>
+                <p class="premium-text">
+                    This website shows the free feed. Premium members get the full list, earlier alerts, and higher volume — delivered
+                    directly to Telegram.
+                </p>
+
+                <div class="premium-benefits">
+                    <div class="benefit"><span>✓</span> All tips</div>
+                    <div class="benefit"><span>✓</span> Early alerts</div>
+                    <div class="benefit"><span>✓</span> More volume</div>
+                    <div class="benefit"><span>✓</span> VIP support</div>
+                </div>
+
+                <div class="premium-actions">
+                    <button class="btn primary" id="btnPremiumJoin2">Join Premium</button>
+                    <button class="btn" id="btnPremiumCopy">Copy Telegram link</button>
+                </div>
+
+                <p class="premium-fine">
+                    Premium is a paid service. Betting is risky — always stake responsibly.
+                </p>
+            </div>
+
+            <div class="premium-card premium-right">
+                <div class="price-box">
+                    <div class="price-top">
+                        <div class="price-name">Premium Plan</div>
+                        <div class="price-tag">Most popular</div>
+                    </div>
+
+                    <div class="price-amount">
+                        <span class="price-currency">€</span><span id="premiumPrice">29</span>
+                        <span class="price-period">/ month</span>
+                    </div>
+
+                    <div class="price-sub">Cancel anytime • Instant Telegram access</div>
+
+                    <div class="price-cta">
+                        <button class="btn primary" id="btnGoCheckout">Continue to payment</button>
+                        <button class="btn ghost" id="btnPremiumFaq">FAQ</button>
+                    </div>
+
+                    <div class="price-proof">
+                        <div class="proof-row">
+                            <span class="proof-pill">🔔 Instant alerts</span>
+                            <span class="proof-pill">📌 Clear picks</span>
+                            <span class="proof-pill">🧮 EV tool support</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mini-note">
+                    <b>Tip:</b> Turn on Telegram notifications so you never miss a drop.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CALCULATOR -->
 <div class="section" id="calculator">
     <div class="container">
         <div class="calc-wrap">
             <div class="calc-head">
-                <h2>Try the EV Calculator</h2>
+                <h2>EV Calculator (Vig-Free Fair Odds)</h2>
                 <p>
-                    Enter sharp over/under odds to remove vig and estimate fair odds. Choose whether your soft odds are for
-                    Over or Under (so the tool doesn’t guess the side). If soft odds beat the fair line enough, the tool approves
-                    the bet and suggests a stake size (with an extra safety factor for 1st half markets).
+                    Enter sharp over/under odds to remove vig and estimate fair odds.
+                    Choose whether your soft odds are for Over or Under.
+                    If the edge is big enough, it approves and suggests a conservative stake (extra safety for 1H markets).
                 </p>
+                <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="pill ghost">Tip: aim for <b style="color:var(--text)">+2%</b> EV or better</div>
+                    <div class="pill ghost">Tip: 1st Half uses <b style="color:var(--text)">0.5</b> safety factor</div>
+                </div>
             </div>
 
             <div class="calc-card">
@@ -588,7 +327,10 @@
                         <label>&nbsp;</label>
                         <button class="btn primary" style="width:100%" onclick="calculateEV()">Calculate EV</button>
                     </div>
-                    <div></div>
+                    <div>
+                        <label>&nbsp;</label>
+                        <button class="btn" style="width:100%" id="btnFillExample">Fill example values</button>
+                    </div>
                 </div>
 
                 <div id="result" class="result">
@@ -608,584 +350,85 @@
     </div>
 </div>
 
+<!-- FOOTER -->
 <div class="footer">
     <div class="container">
         <div class="footer-inner">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div class="logo" style="width:28px;height:28px;border-radius:10px;"></div>
                 <div>
-                    <div style="font-weight:900; color:var(--text)">BetHouse</div>
-                    <div style="color:var(--muted); font-weight:650;">Sports Tips & Tools</div>
+                    <div style="font-weight:950; color:var(--text)">BetHouse</div>
+                    <div style="color:var(--muted); font-weight:800;">Free tips • EV tools • Transparent tracking</div>
                 </div>
             </div>
             <div style="text-align:right;">
                 <div>© <span id="year"></span> BetHouse. All rights reserved.</div>
-                <div style="margin-top:4px; color:var(--muted);">Newest-first • Outcome bubbles</div>
+                <div style="margin-top:4px; color:var(--muted);">
+                    Favorites + filters saved locally for fast repeat visits.
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<script>
-    // =========================
-    // GOOGLE SHEETS SETTINGS
-    // =========================
-    const SHEET_ID = "16K_pRwbgO58TGwY_n8vHdH_lH-JG5U8wJ9pHl7XEcRE";
-    // ⚠️ Change to your exact tab name (bottom tab label in Google Sheets)
-    const TAB_NAME = "Sheet1";
-
-    // A: PUBLISH TIME (date+time), B GAME, C ODDS, D TIP, E OUTCOME, F STAKE SIZE, G PROFIT
-    function sheetUrl() {
-        const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq`;
-        const params = new URLSearchParams({
-            sheet: TAB_NAME,
-            tq: "select A,B,C,D,E,F,G",
-            tqx: "out:json"
-        });
-        return `${base}?${params.toString()}`;
-    }
-
-    const tipsGrid = document.getElementById("tipsGrid");
-    const searchEl = document.getElementById("search");
-    const sortByEl = document.getElementById("sortBy");
-
-    // Pagination elements
-    const paginationWrap = document.getElementById("paginationWrap");
-    const paginationBtns = document.getElementById("paginationBtns");
-    const backToFirstBtn = document.getElementById("backToFirstBtn");
-
-    const totalProfitText = document.getElementById("totalProfitText");
-    const winLossText = document.getElementById("winLossText");
-    const winsCountEl = document.getElementById("winsCount");
-    const lossesCountEl = document.getElementById("lossesCount");
-    const refundCountEl = document.getElementById("refundCount");
-    const profitCanvas = document.getElementById("profitChart");
-    const profitCtx = profitCanvas.getContext("2d");
-
-    let tips = [];
-
-    // Pagination state
-    const PAGE_SIZE = 9;
-    let currentPage = 1;
-
-    function parseGviz(jsonText) {
-        const start = jsonText.indexOf("{");
-        const end = jsonText.lastIndexOf("}");
-        return JSON.parse(jsonText.slice(start, end + 1));
-    }
-
-    function escapeHtml(s){
-        return String(s ?? "")
-            .replaceAll("&","&amp;")
-            .replaceAll("<","&lt;")
-            .replaceAll(">","&gt;")
-            .replaceAll('"',"&quot;")
-            .replaceAll("'","&#039;");
-    }
-
-    // Handles gviz Date(...), Google serial dates, and strings
-    function toISOorDate(value) {
-        if (value == null || value === "") return null;
-
-        if (typeof value === "string" && value.startsWith("Date(")) {
-            const parts = value.replace("Date(", "").replace(")", "")
-                .split(",").map(n => parseInt(n.trim(), 10));
-            const [y, m, d, hh=0, mm=0, ss=0] = parts;
-            return new Date(y, m, d, hh, mm, ss).toISOString();
-        }
-
-        if (typeof value === "number" && isFinite(value)) {
-            const ms = (value - 25569) * 86400 * 1000;
-            const dt = new Date(ms);
-            return isNaN(dt.getTime()) ? null : dt.toISOString();
-        }
-
-        const dt = new Date(value);
-        if (!isNaN(dt.getTime())) return dt.toISOString();
-
-        return String(value);
-    }
-
-    // 24-hour formatting
-    function fmtPublishTime(isoOrString) {
-        if (!isoOrString) return "—";
-        const d = new Date(isoOrString);
-        if (isNaN(d.getTime())) return String(isoOrString);
-        return d.toLocaleString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false
-        });
-    }
-
-    function normalizeOutcome(outcomeRaw){
-        return (outcomeRaw ?? "").toString().trim().toLowerCase();
-    }
-
-    function isPendingOutcome(outcome){
-        return !outcome || outcome === "pending" || outcome === "open" || outcome === "unsettled" || outcome === "tbd";
-    }
-
-    function cardClassForOutcome(outcomeRaw){
-        const o = normalizeOutcome(outcomeRaw);
-        if (o === "win" || o === "won") return "win";
-        if (o === "lost" || o === "loss") return "loss";
-        if (o === "refund" || o === "void" || o === "push") return "refund";
-        if (isPendingOutcome(o)) return "pending";
-        return "pending";
-    }
-
-    function outcomePill(outcomeRaw){
-        const o = normalizeOutcome(outcomeRaw);
-        if (o === "win" || o === "won") return `<span class="pill green">Outcome: WIN</span>`;
-        if (o === "lost" || o === "loss") return `<span class="pill red">Outcome: LOST</span>`;
-        if (o === "refund" || o === "void" || o === "push") return `<span class="pill blue">Outcome: REFUND</span>`;
-        return `<span class="pill yellow">Outcome: PENDING</span>`;
-    }
-
-    // PROFIT is column G. Sign by outcome for safety.
-    function computeSignedProfit(profitRaw, outcomeRaw){
-        const o = normalizeOutcome(outcomeRaw);
-        const n = Number(profitRaw);
-        if (!isFinite(n)) return null;
-
-        const abs = Math.abs(n);
-        if (o === "win" || o === "won") return +abs;
-        if (o === "lost" || o === "loss") return -abs;
-        if (o === "refund" || o === "void" || o === "push") return 0;
-        if (isPendingOutcome(o)) return 0;
-        return n;
-    }
-
-    function formatStakeSize(stakeRaw){
-        if (stakeRaw == null || stakeRaw === "") return "—";
-        const n = Number(stakeRaw);
-        if (isFinite(n)) {
-            const abs = Math.abs(n);
-            const hasDecimals = Math.round(abs) !== abs;
-            return hasDecimals ? abs.toFixed(2) : abs.toFixed(0);
-        }
-        return String(stakeRaw).trim();
-    }
-
-    function formatProfitForCard(profitRaw, outcomeRaw){
-        const o = normalizeOutcome(outcomeRaw);
-        if (isPendingOutcome(o)) return { text: "—", cls: "", bold:false };
-
-        if (profitRaw == null || profitRaw === "") return { text: "—", cls: "" , bold:false };
-
-        const n = Number(profitRaw);
-        if (isFinite(n)) {
-            const abs = Math.abs(n);
-            const hasDecimals = Math.round(abs) !== abs;
-            const base = hasDecimals ? abs.toFixed(2) : abs.toFixed(0);
-
-            if (o === "win" || o === "won") return { text: `+${base}`, cls: "positive", bold:true };
-            if (o === "lost" || o === "loss") return { text: `-${base}`, cls: "negative", bold:false };
-            if (o === "refund" || o === "void" || o === "push") return { text: `0`, cls: "", bold:false };
-
-            return { text: String(n), cls:"", bold:false };
-        }
-
-        const s = String(profitRaw).trim();
-        const alreadySigned = s.startsWith("+") || s.startsWith("-");
-        if (o === "win" || o === "won") return { text: alreadySigned ? s : ("+" + s), cls:"positive", bold:true };
-        if (o === "lost" || o === "loss") return { text: alreadySigned ? s : ("-" + s), cls:"negative", bold:false };
-        if (o === "refund" || o === "void" || o === "push") return { text: "0", cls:"", bold:false };
-        return { text: s, cls:"", bold:false };
-    }
-
-    /* =========================
-       PAGINATION HELPERS
-    ========================= */
-    function getPagedRows(rows){
-        const start = (currentPage - 1) * PAGE_SIZE;
-        return rows.slice(start, start + PAGE_SIZE);
-    }
-
-    function renderPagination(totalCount, isSearching){
-        if (isSearching){
-            paginationWrap.style.display = "none";
-            return;
-        }
-
-        const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-        paginationWrap.style.display = totalPages > 1 ? "flex" : "none";
-
-        backToFirstBtn.style.display = (currentPage > 1) ? "inline-flex" : "none";
-        backToFirstBtn.onclick = () => {
-            currentPage = 1;
-            renderTips();
-            document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
-        };
-
-        paginationBtns.innerHTML = "";
-
-        // Smart-ish pagination: show up to 9 buttons with ellipses
-        const makeBtn = (p) => {
-            const b = document.createElement("button");
-            b.className = "btn page" + (p === currentPage ? " active" : "");
-            b.textContent = String(p);
-            b.onclick = () => {
-                currentPage = p;
-                renderTips();
-                document.getElementById("tips").scrollIntoView({ behavior: "smooth", block: "start" });
-            };
-            return b;
-        };
-
-        const makeDots = () => {
-            const s = document.createElement("span");
-            s.textContent = "…";
-            s.style.color = "rgba(154,164,194,.8)";
-            s.style.fontWeight = "900";
-            s.style.padding = "0 6px";
-            return s;
-        };
-
-        const total = totalPages;
-        const p = currentPage;
-
-        // Always show 1 and last; show neighbors around current
-        const pages = new Set([1, total, p, p-1, p+1, p-2, p+2]);
-        const arr = [...pages].filter(x => x>=1 && x<=total).sort((a,b)=>a-b);
-
-        // Build with dots if gaps
-        let prev = 0;
-        for (const page of arr){
-            if (prev && page - prev > 1) paginationBtns.appendChild(makeDots());
-            paginationBtns.appendChild(makeBtn(page));
-            prev = page;
-        }
-    }
-
-    function renderTips(){
-        const q = (searchEl.value || "").trim().toLowerCase();
-        const sort = sortByEl.value;
-
-        let rows = tips.slice();
-
-        // Filter
-        if (q){
-            rows = rows.filter(t => {
-                const hay = `${t.game} ${t.tip} ${t.outcome ?? ""} ${t.odds ?? ""} ${t.stakeRaw ?? ""} ${t.profitRaw ?? ""} ${t.dateRaw ?? ""}`.toLowerCase();
-                return hay.includes(q);
-            });
-        }
-
-        // Sort
-        if (sort === "NEWEST"){
-            rows.sort((a,b) => new Date(b.date) - new Date(a.date));
-        } else if (sort === "HIGHEST_ODDS"){
-            rows.sort((a,b) => (b.odds ?? -999) - (a.odds ?? -999));
-        } else if (sort === "LOWEST_ODDS"){
-            rows.sort((a,b) => (a.odds ?? 999) - (b.odds ?? 999));
-        } else if (sort === "HIGHEST_STAKE"){
-            rows.sort((a,b) => {
-                const an = Number(a.stakeRaw); const bn = Number(b.stakeRaw);
-                const av = isFinite(an) ? Math.abs(an) : -999999;
-                const bv = isFinite(bn) ? Math.abs(bn) : -999999;
-                return bv - av;
-            });
-        }
-
-        const isSearching = q.length > 0;
-        if (isSearching) currentPage = 1;
-
-        const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-        if (currentPage > totalPages) currentPage = totalPages;
-
-        const displayRows = isSearching ? rows : getPagedRows(rows);
-
-        tipsGrid.innerHTML = "";
-
-        if (!rows.length){
-            tipsGrid.innerHTML = `<div class="empty">No tips match your search. Try another keyword.</div>`;
-            renderPagination(0, false);
-            return;
-        }
-
-        displayRows.forEach(t => {
-            const oddsStr = Number.isFinite(t.odds) ? t.odds.toFixed(2) : (t.odds ?? "—");
-            const stakeSizeStr = formatStakeSize(t.stakeRaw);
-            const profitFmt = formatProfitForCard(t.profitRaw, t.outcome);
-            const cardClass = cardClassForOutcome(t.outcome);
-
-            const profitInline = profitFmt.bold
-                ? `<strong class="${profitFmt.cls}">${escapeHtml(profitFmt.text)}</strong>`
-                : `<span class="${profitFmt.cls}">${escapeHtml(profitFmt.text)}</span>`;
-
-            const card = document.createElement("div");
-            card.className = `tip-card ${cardClass}`;
-            card.innerHTML = `
-        <div class="tip-top">
-          <div class="badge"><span class="mini"></span> Tip</div>
-          <div class="meta">${escapeHtml(fmtPublishTime(t.date))}</div>
+<!-- Sticky CTA -->
+<div class="sticky-cta" id="stickyCta">
+    <div class="left">
+        <span class="pulse" aria-hidden="true"></span>
+        <div style="min-width:0;">
+            <div class="title">Free tips updated regularly</div>
+            <p class="sub" id="stickySub">Loading latest tip…</p>
         </div>
+        <div class="chip" id="stickyChip">—</div>
+    </div>
+    <div class="right">
+        <button class="btn ghost" id="btnCtaFavorites">My Favorites</button>
+        <button class="btn primary" id="btnCtaTips">View Latest Tips</button>
+    </div>
+</div>
 
-        <h3 class="tip-title">${escapeHtml(t.game || "Game")}</h3>
-
-        <p class="tip-desc">
-          <strong style="color:var(--text)">Pick:</strong> ${escapeHtml(t.tip || "—")}<br/>
-          <span style="color: var(--muted);">Stake Size:</span> ${escapeHtml(stakeSizeStr)}<br/>
-          <span style="color: var(--muted);">Profit:</span> ${profitInline}
-        </p>
-
-        <div class="tip-bottom">
-          <span class="pill blue">Odds: ${escapeHtml(String(oddsStr))}</span>
-          ${outcomePill(t.outcome)}
-          <span class="pill">Stake: ${escapeHtml(stakeSizeStr)}</span>
-          <span class="pill ${profitFmt.cls}">Profit: ${escapeHtml(profitFmt.text)}</span>
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Tip details">
+        <div class="modal-head">
+            <div>
+                <h3 class="modal-title" id="modalTitle">Tip details</h3>
+                <div class="modal-sub" id="modalSub">—</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button class="icon-btn" id="modalFavBtn" title="Toggle favorite">★</button>
+                <button class="icon-btn" id="modalCopyBtn" title="Copy tip">⧉</button>
+                <button class="icon-btn" id="modalCloseBtn" title="Close">✕</button>
+            </div>
         </div>
-      `;
-            tipsGrid.appendChild(card);
-        });
+        <div class="modal-body">
+            <div class="modal-grid">
+                <div class="modal-box">
+                    <h4>Pick</h4>
+                    <div id="modalPick" style="font-weight:950; font-size:15px; line-height:1.55; color:var(--text);">—</div>
+                    <div class="modal-actions">
+                        <button class="btn primary" id="modalGoCalc">Check with EV Tool</button>
+                        <button class="btn" id="modalShare">Copy share link</button>
+                    </div>
+                </div>
 
-        renderPagination(rows.length, isSearching);
-    }
+                <div class="modal-box">
+                    <h4>Details</h4>
+                    <div class="kv" id="modalKv"></div>
+                </div>
+            </div>
 
-    function computeStatsAndChart(){
-        const byDate = tips
-            .filter(t => t.date && !isNaN(new Date(t.date).getTime()))
-            .slice()
-            .sort((a,b) => new Date(a.date) - new Date(b.date));
-
-        let wins=0, losses=0, refunds=0;
-        let total=0;
-
-        const series = [];
-        for (const t of byDate){
-            const o = normalizeOutcome(t.outcome);
-            if (o === "win" || o === "won") wins++;
-            else if (o === "lost" || o === "loss") losses++;
-            else if (o === "refund" || o === "void" || o === "push") refunds++;
-
-            const signed = computeSignedProfit(t.profitRaw, t.outcome);
-            if (signed != null) total += signed;
-            series.push(total);
-        }
-
-        winsCountEl.textContent = String(wins);
-        lossesCountEl.textContent = String(losses);
-        refundCountEl.textContent = String(refunds);
-
-        const totalStr = (total >= 0 ? "+" : "") + total.toFixed(2);
-        totalProfitText.innerHTML = `<span class="${total >= 0 ? "positive" : "negative"}">${escapeHtml(totalStr)}</span>`;
-        winLossText.textContent = `${wins}W • ${losses}L • ${refunds}R (cumulative)`;
-
-        drawLineChart(series);
-    }
-
-    function drawLineChart(series){
-        const ctx = profitCtx;
-        const w = profitCanvas.width;
-        const h = profitCanvas.height;
-
-        ctx.clearRect(0,0,w,h);
-
-        if (!series.length){
-            ctx.globalAlpha = 1;
-            ctx.font = "bold 14px Inter, system-ui, sans-serif";
-            ctx.fillStyle = "rgba(233,236,241,.85)";
-            ctx.fillText("No numeric profits yet.", 16, 42);
-            ctx.font = "12px Inter, system-ui, sans-serif";
-            ctx.fillStyle = "rgba(154,164,194,.85)";
-            ctx.fillText("Add numbers to column G to show the graph.", 16, 64);
-            return;
-        }
-
-        const pad = 14;
-        const innerW = w - pad*2;
-        const innerH = h - pad*2;
-
-        const min = Math.min(...series, 0);
-        const max = Math.max(...series, 0);
-        const range = (max - min) || 1;
-
-        const x = (i) => pad + (i * (innerW / Math.max(series.length - 1, 1)));
-        const y = (v) => pad + (innerH - ((v - min) / range) * innerH);
-
-        ctx.save();
-        ctx.strokeStyle = "rgba(255,255,255,.08)";
-        ctx.lineWidth = 1;
-        for (let i=1;i<=3;i++){
-            const yy = pad + (innerH * i/4);
-            ctx.beginPath();
-            ctx.moveTo(pad, yy);
-            ctx.lineTo(w-pad, yy);
-            ctx.stroke();
-        }
-        ctx.restore();
-
-        const y0 = y(0);
-        ctx.save();
-        ctx.strokeStyle = "rgba(255,255,255,.14)";
-        ctx.setLineDash([5,5]);
-        ctx.beginPath();
-        ctx.moveTo(pad, y0);
-        ctx.lineTo(w-pad, y0);
-        ctx.stroke();
-        ctx.restore();
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(x(0), y(series[0]));
-        for (let i=1;i<series.length;i++) ctx.lineTo(x(i), y(series[i]));
-        ctx.lineTo(x(series.length-1), h-pad);
-        ctx.lineTo(x(0), h-pad);
-        ctx.closePath();
-        ctx.fillStyle = "rgba(92,124,250,.10)";
-        ctx.fill();
-        ctx.restore();
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(x(0), y(series[0]));
-        for (let i=1;i<series.length;i++) ctx.lineTo(x(i), y(series[i]));
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "rgba(92,124,250,.95)";
-        ctx.stroke();
-        ctx.restore();
-
-        const lastX = x(series.length-1);
-        const lastY = y(series[series.length-1]);
-        ctx.save();
-        ctx.fillStyle = "rgba(233,236,241,.95)";
-        ctx.beginPath();
-        ctx.arc(lastX, lastY, 3.6, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-
-        ctx.save();
-        ctx.font = "12px Inter, system-ui, sans-serif";
-        ctx.fillStyle = "rgba(154,164,194,.95)";
-        ctx.fillText(max.toFixed(2), pad, pad+12);
-        ctx.fillText(min.toFixed(2), pad, h-pad);
-        ctx.restore();
-    }
-
-    // ====== EV calculator (Soft Side selector) ======
-    function calculateEV() {
-        const sharpOver = parseFloat(document.getElementById('sharpOver').value);
-        const sharpUnder = parseFloat(document.getElementById('sharpUnder').value);
-        const soft = parseFloat(document.getElementById('softOdds').value);
-        const bankroll = parseFloat(document.getElementById('bankroll').value);
-        const market = document.getElementById('market').value;
-        const softSide = document.getElementById('softSide').value;
-
-        if ([sharpOver, sharpUnder, soft, bankroll].some(Number.isNaN)) return;
-        if (sharpOver <= 1 || sharpUnder <= 1 || soft <= 1 || bankroll <= 0) return;
-
-        const pO = 1 / sharpOver;
-        const pU = 1 / sharpUnder;
-        const vig = pO + pU;
-
-        const fairProbO = pO / vig;
-        const fairProbU = pU / vig;
-
-        const fairO = 1 / fairProbO;
-        const fairU = 1 / fairProbU;
-
-        const fairLow = Math.min(fairO, fairU);
-        const fairHigh = Math.max(fairO, fairU);
-
-        const bettingOver = softSide === "OVER";
-        const fairProb = bettingOver ? fairProbO : fairProbU;
-
-        const ev = (soft * fairProb) - 1;
-        const evPct = ev * 100;
-        const positive = ev >= 0.02;
-
-        document.getElementById('fairRange').textContent = `${fairLow.toFixed(2)} – ${fairHigh.toFixed(2)}`;
-
-        const evSpan = document.getElementById('evPercent');
-        evSpan.textContent = (ev >= 0 ? '+' : '') + evPct.toFixed(2) + '%';
-        evSpan.className = positive ? 'positive' : 'negative';
-
-        const stakeRow = document.getElementById('stakeRow');
-        if (positive) {
-            const factor = market === 'FIRST_HALF' ? 0.5 : 1;
-            let stake = bankroll * ev * 0.3 * factor;
-            stake = Math.max(stake, bankroll * 0.003);
-            stakeRow.style.display = 'flex';
-            document.getElementById('stakeAmount').textContent = '€' + stake.toFixed(2);
-        } else {
-            stakeRow.style.display = 'none';
-        }
-
-        const decision = document.getElementById('decisionText');
-        decision.textContent = positive
-            ? `BET APPROVED (${bettingOver ? "OVER" : "UNDER"})`
-            : `NO BET (${bettingOver ? "OVER" : "UNDER"})`;
-        decision.className = positive ? 'positive' : 'negative';
-
-        document.getElementById('result').style.display = 'block';
-    }
-    window.calculateEV = calculateEV;
-
-    document.getElementById("year").textContent = new Date().getFullYear();
-
-    async function loadTipsFromSheet(){
-        try{
-            const res = await fetch(sheetUrl(), { cache: "no-store" });
-            const text = await res.text();
-            const data = parseGviz(text);
-
-            const rows = data?.table?.rows ?? [];
-
-            tips = rows.map((r) => {
-                const c = (n) => r?.c?.[n]?.v ?? null;
-                const publishVal = c(0);
-                const publishISO = toISOorDate(publishVal);
-
-                return {
-                    date: publishISO,
-                    dateRaw: publishVal,
-                    game: c(1),
-                    odds: c(2) != null ? Number(c(2)) : null,
-                    tip: c(3),
-                    outcome: c(4),
-                    stakeRaw: c(5),
-                    profitRaw: c(6)
-                };
-            }).filter(t => t.game || t.tip);
-
-            sortByEl.value = "NEWEST";
-            currentPage = 1;
-
-            renderTips();
-            computeStatsAndChart();
-        } catch (e){
-            tipsGrid.innerHTML = `
-        <div class="empty">
-          Could not load tips from Google Sheets.<br/>
-          ✅ Make sure you did <strong>File → Share → Publish to web</strong> on the correct tab.<br/>
-          ✅ Set <strong>TAB_NAME</strong> to match your sheet tab name.<br/>
-          ✅ Column A must be <strong>Date time</strong> to show time.
+            <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                <span class="pill" id="modalOutcomePill">Outcome: —</span>
+                <span class="pill ghost" id="modalDatePill">📅 —</span>
+            </div>
         </div>
-      `;
-            console.error(e);
-        }
-    }
+    </div>
+</div>
 
-    searchEl.addEventListener("input", () => {
-        currentPage = 1;
-        renderTips();
-    });
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
-    sortByEl.addEventListener("change", () => {
-        currentPage = 1;
-        renderTips();
-    });
-
-    // Initial load
-    loadTipsFromSheet();
-
-    // Optional: auto-refresh tips every 2 minutes
-    setInterval(loadTipsFromSheet, 2 * 60 * 1000);
-</script>
+<script src="./app.js" defer></script>
 </body>
 </html>
